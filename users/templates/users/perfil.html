@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Perfil de {{ user.username }}{% endblock %}
+
+{% block content %}
+<h1>Perfil de {{ user.username }}</h1>
+
+<p><strong>Usuario:</strong> {{ user.username }}</p>
+<p><strong>Email:</strong> {{ user.email }}</p>
+<p><strong>Fecha de registro:</strong> {{ user.date_joined|date:"d M Y" }}</p>
+
+<hr>
+
+<h2>Editar perfil</h2>
+<form method="POST" enctype="multipart/form-data">
+  {% csrf_token %}
+  {{ form.as_p }}
+
+  <button type="submit">Guardar cambios</button>
+</form>
+
+<hr>
+
+<h2>Mis recetas</h2>
+<ul>
+  {% for receta in recetas %}
+    <li>
+      <a href="{% url 'detalle_receta' receta.pk %}">{{ receta.titulo }}</a>
+      - <a href="{% url 'editar_receta' receta.pk %}">Editar</a>
+      - <a href="{% url 'borrar_receta' receta.pk %}">Borrar</a>
+    </li>
+  {% empty %}
+    <li>No has creado ninguna receta todavía.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

@@ -1,0 +1,37 @@
+<!-- templates/base.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}FoodieNet{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="{% url 'lista_recetas' %}">Inicio</a></li>
+
+            {% if user.is_authenticated %}
+                <li><a href="{% url 'crear_receta' %}">Nueva Receta</a></li>
+                <li>
+                    <form method="post" action="{% url 'authentication:logout' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" style="background:none;border:none;color:#007bff;cursor:pointer;padding:0;">Cerrar sesión</button>
+                    </form>
+                </li>
+                <li><a href="{% url 'users:perfil' %}">Mi perfil</a></li>
+                <li>Bienvenido, {{ user.username }}!</li>
+            {% else %}
+                <li><a href="{% url 'authentication:login' %}">Iniciar sesión</a></li>
+                <li><a href="{% url 'authentication:register' %}">Registrarse</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <hr>
+
+    {% block content %}
+    {% endblock %}
+</body>
+</html>
