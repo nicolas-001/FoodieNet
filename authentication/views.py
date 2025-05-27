@@ -3,16 +3,16 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
+from .forms import RegistroForm
 
 def register(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = RegistroForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
-            messages.success(request, "Registro exitoso. Por favor, inicia sesión.")
-            return redirect('authentication:login')  # Aquí redirige a login
+            form.save()                      # ya guarda también la foto en el perfil
+            return redirect('authentication:login')
     else:
-        form = UserCreationForm()
+        form = RegistroForm()
     return render(request, 'registration/register.html', {'form': form})
 
 def login_view(request):

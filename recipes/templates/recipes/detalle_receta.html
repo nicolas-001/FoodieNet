@@ -5,6 +5,7 @@
 {% block content %}
     <h1>{{ receta.titulo }}</h1>
     <p><strong>Autor:</strong> {{ receta.autor.username }}</p>
+    <img src="{{ receta.autor.perfil.foto.url }}" alt="Foto de perfil" style="width:50px; height:50px; border-radius:50%;">
     <p><strong>Descripción:</strong> {{ receta.descripcion }}</p>
     <p><strong>Ingredientes:</strong> {{ receta.ingredientes }}</p>
     <p><strong>Pasos:</strong> {{ receta.pasos }}</p>

@@ -4,7 +4,8 @@ from .forms import RecetaForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic.edit import UpdateView
-from django.urls import reverse_lazy
+from django.http import HttpResponseRedirect
+from django.urls import reverse_lazy, reverse
 # Create your views here.
 
 def lista_recetas(request):
@@ -27,6 +28,7 @@ def crear_receta(request):
         form = RecetaForm()
     return render(request, 'recipes/crear_receta.html', {'form': form})
 
+##@login_required
 class EditarRecetaView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Receta
     fields = ['titulo', 'descripcion', 'ingredientes', 'pasos', 'imagen']
@@ -38,3 +40,8 @@ class EditarRecetaView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     def test_func(self):
         receta = self.get_object()
         return receta.autor == self.request.user
+@login_required
+def borrar_receta(request, receta_id):
+    receta = get_object_or_404(Receta, id=receta_id, autor=request.user)
+    receta.delete()
+    return HttpResponseRedirect(reverse('users:perfil'))

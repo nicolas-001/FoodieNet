@@ -11,13 +11,9 @@
 
 <hr>
 
-<h2>Editar perfil</h2>
-<form method="POST" enctype="multipart/form-data">
-  {% csrf_token %}
-  {{ form.as_p }}
-
-  <button type="submit">Guardar cambios</button>
-</form>
+<a href="{% url 'users:editar_perfil' %}" style="padding: 8px 12px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px;">
+  Editar perfil
+</a>
 
 <hr>
 

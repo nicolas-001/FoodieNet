@@ -9,6 +9,8 @@
     {% for receta in recetas %}
         <li>
             <h2><a href="{% url 'detalle_receta' receta.pk %}">{{ receta.titulo }}</a></h2>
+            <p>Por: {{ receta.autor.username }}</p>
+    <img src="{{ receta.autor.perfil.foto.url }}" alt="Foto de perfil" style="width:50px; height:50px; border-radius:50%;">
             <p>{{ receta.descripcion }}</p>
             <p>{{ receta.ingredientes }}</p>
             <p>{{ receta.pasos }}</p>
