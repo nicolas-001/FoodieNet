@@ -7,4 +7,6 @@ app_name = 'users'
 urlpatterns = [
     path('perfil/', views.perfil, name='perfil'),
     path('editar_perfil/', editar_perfil, name='editar_perfil'),
+    path('perfil/favoritos/', views.favoritos, name='favoritos'),
+
 ]

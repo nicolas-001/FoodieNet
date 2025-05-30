@@ -3,19 +3,60 @@
 {% block title %}{{ receta.titulo }} - FoodieNet{% endblock %}
 
 {% block content %}
-    <h1>{{ receta.titulo }}</h1>
-    <p><strong>Autor:</strong> {{ receta.autor.username }}</p>
-    <img src="{{ receta.autor.perfil.foto.url }}" alt="Foto de perfil" style="width:50px; height:50px; border-radius:50%;">
-    <p><strong>Descripción:</strong> {{ receta.descripcion }}</p>
-    <p><strong>Ingredientes:</strong> {{ receta.ingredientes }}</p>
-    <p><strong>Pasos:</strong> {{ receta.pasos }}</p>
-    {% if receta.imagen %}
-        <img src="{{ receta.imagen.url }}" alt="{{ receta.titulo }}" width="300">
-    {% endif %}
-    <p><strong>Fecha de creación:</strong> {{ receta.fecha_creacion }}</p>
-    {% if user.is_authenticated and user == receta.autor %}
-    <a href="{% url 'editar_receta' receta.pk %}">Editar receta</a>
-    {% endif %}
+  <h1>{{ receta.titulo }}</h1>
+  <p><small>👁️ Visitas: {{ receta.visitas }}</small></p>
 
-    <a href="{% url 'lista_recetas' %}">Volver a la lista de recetas</a>
+  <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+    <img
+      src="{{ receta.autor.perfil.foto.url }}"
+      alt="Foto de perfil de {{ receta.autor.username }}"
+      style="width:50px; height:50px; border-radius:50%; object-fit:cover;"
+    >
+    <p><strong>Autor:</strong> {{ receta.autor.username }}</p>
+  </div>
+
+  <p><strong>Descripción:</strong> {{ receta.descripcion }}</p>
+  <p><strong>Ingredientes:</strong> {{ receta.ingredientes }}</p>
+  <p><strong>Pasos:</strong> {{ receta.pasos }}</p>
+
+  {% if receta.imagen %}
+    <div style="margin:16px 0;">
+      <img src="{{ receta.imagen.url }}" alt="{{ receta.titulo }}" width="300">
+    </div>
+  {% endif %}
+
+  <p><strong>Fecha de creación:</strong>
+     {{ receta.fecha_creacion|date:"d M Y H:i" }}
+  </p>
+
+  {% if user.is_authenticated and user == receta.autor %}
+    <p><a href="{% url 'editar_receta' receta.pk %}">✏️ Editar receta</a></p>
+  {% endif %}
+
+  <hr>
+
+  {% if user.is_authenticated %}
+    <form method="post" action="{% url 'toggle_like' receta.pk %}" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" style="background:none; border:none; cursor:pointer; font-size:1.2em;">
+        {% if liked %}❤️{% else %}🤍{% endif %} {{ receta.total_likes }}
+      </button>
+    </form>
+
+    <form method="post" action="{% url 'toggle_favorito' receta.pk %}" style="display:inline; margin-left:16px;">
+      {% csrf_token %}
+      <button type="submit" style="background:none; border:none; cursor:pointer; font-size:1.2em;">
+        {% if favorited %}★{% else %}☆{% endif %} {{ receta.total_favs }}
+      </button>
+    </form>
+  {% else %}
+    <p>
+      <a href="{% url 'authentication:login' %}?next={% url 'detalle_receta' receta.pk %}">
+        Inicia sesión
+      </a> para dar like o favorito.
+    </p>
+  {% endif %}
+
+  <hr>
+  <p><a href="{% url 'lista_recetas' %}">← Volver a la lista de recetas</a></p>
 {% endblock %}

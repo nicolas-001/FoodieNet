@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from recipes.models import Receta  # Ajusta si tu modelo se llama distinto
+from recipes.models import Receta, Favorito  # Ajusta si tu modelo se llama distinto
 from .forms import UserEditForm,PerfilForm  # Formulario para editar usuario
 
 
@@ -30,3 +30,15 @@ def editar_perfil(request):
     else:
         form = PerfilForm(instance=perfil)
     return render(request, 'users/editar_perfil.html', {'form': form})
+@login_required
+def favoritos(request):
+    """Lista las recetas que el usuario ha marcado como favoritas."""
+    # Traemos todos los Favorito del usuario y precargamos la receta y su autor/perfil
+    favoritos_qs = Favorito.objects.filter(user=request.user) \
+                      .select_related('receta__autor__perfil')
+    # Extraemos las recetas
+    recetas_fav = [fav.receta for fav in favoritos_qs]
+
+    return render(request, 'users/favoritos.html', {
+        'recetas_fav': recetas_fav
+    })

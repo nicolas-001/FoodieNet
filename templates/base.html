@@ -1,37 +1,143 @@
-<!-- templates/base.html -->
+{# templates/base.html #}
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>{% block title %}FoodieNet{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}FoodieNet{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <style>
+    /* Base */
+    body {
+      margin: 0;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: #f4f4f4;
+      color: #333;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    /* Header hero */
+    header.hero {
+      position: relative;
+      background: url("{% static 'images/header-bg.jpg' %}") center/cover no-repeat;
+      height: 300px;
+      display: flex;
+      align-items: center;
+      color: white;
+    }
+    header.hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+    }
+    header .inner {
+      position: relative;
+      width: 90%;
+      max-width: 1200px;
+      margin: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header .logo {
+      font-size: 2rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+    }
+    nav.main-nav ul {
+      list-style: none;
+      display: flex;
+      gap: 1rem;
+    }
+    nav.main-nav a {
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+    nav.main-nav a:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    /* Hero text */
+    header .tagline {
+      position: relative;
+      margin-top: 1.5rem;
+      max-width: 600px;
+    }
+    header .tagline h1 {
+      margin: 0;
+      font-size: 2.5rem;
+      line-height: 1.2;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+    }
+    header .tagline p {
+      margin-top: 0.5rem;
+      font-size: 1.1rem;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+    }
+
+    /* Main container */
+    main {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      background: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      border-radius: 4px;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 1rem;
+      font-size: 0.9rem;
+      color: #777;
+    }
+  </style>
 </head>
 <body>
-    <nav>
+
+  <!-- HERO HEADER -->
+  <header class="hero">
+    <div class="inner">
+      <div class="logo"><a href="{% url 'lista_recetas' %}">FoodieNet</a></div>
+      <nav class="main-nav">
         <ul>
-            <li><a href="{% url 'lista_recetas' %}">Inicio</a></li>
-
-            {% if user.is_authenticated %}
-                <li><a href="{% url 'crear_receta' %}">Nueva Receta</a></li>
-                <li>
-                    <form method="post" action="{% url 'authentication:logout' %}" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit" style="background:none;border:none;color:#007bff;cursor:pointer;padding:0;">Cerrar sesión</button>
-                    </form>
-                </li>
-                <li><a href="{% url 'users:perfil' %}">Mi perfil</a></li>
-                <li>Bienvenido, {{ user.username }}!</li>
-            {% else %}
-                <li><a href="{% url 'authentication:login' %}">Iniciar sesión</a></li>
-                <li><a href="{% url 'authentication:register' %}">Registrarse</a></li>
-            {% endif %}
+          <li><a href="{% url 'lista_recetas' %}">Inicio</a></li>
+          {% if user.is_authenticated %}
+            <li><a href="{% url 'crear_receta' %}">Nueva Receta</a></li>
+            <li><a href="{% url 'users:perfil' %}">Perfil</a></li>
+            <li>
+              <form method="post" action="{% url 'authentication:logout' %}" style="display:inline;">
+                {% csrf_token %}
+                <button style="background:none;border:none;color:white;cursor:pointer;padding:0.5rem 1rem;">Cerrar sesión</button>
+              </form>
+            </li>
+          {% else %}
+            <li><a href="{% url 'authentication:login' %}">Iniciar sesión</a></li>
+            <li><a href="{% url 'authentication:register' %}">Registrarse</a></li>
+          {% endif %}
         </ul>
-    </nav>
+      </nav>
+    </div>
+    <div class="inner tagline">
+      <h1>Comparte y descubre recetas increíbles</h1>
+      <p>Únete a la comunidad de FoodieNet y lleva tu pasión por la cocina al siguiente nivel.</p>
+    </div>
+  </header>
 
-    <hr>
+  <!-- CONTENIDO PRINCIPAL -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
 
-    {% block content %}
-    {% endblock %}
+  <!-- FOOTER -->
+  <footer>
+    © {% now "Y" %} FoodieNet. Todos los derechos reservados.
+  </footer>
+
 </body>
 </html>

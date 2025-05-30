@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Mis Favoritos - {{ user.username }}{% endblock %}
+
+{% block content %}
+  <h2>Recetas Favoritas de {{ user.username }}</h2>
+
+  {% if recetas_fav %}
+    <ul>
+      {% for receta in recetas_fav %}
+        <li style="margin-bottom:12px;">
+          <a href="{% url 'detalle_receta' receta.pk %}">
+            <strong>{{ receta.titulo }}</strong>
+          </a>
+          <br>
+          <small>por {{ receta.autor.username }}</small>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No tienes recetas en favoritos aún.</p>
+  {% endif %}
+
+  <p><a href="{% url 'users:perfil' %}">← Volver a mi perfil</a></p>
+{% endblock %}
