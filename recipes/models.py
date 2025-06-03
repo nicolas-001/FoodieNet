@@ -40,3 +40,11 @@ class Favorito(models.Model):
 
     def __str__(self):
         return f"{self.user.username} marcó {self.receta.titulo} como favorito"
+class Comentario(models.Model):
+    receta  = models.ForeignKey('Receta', on_delete=models.CASCADE, related_name='comentarios')
+    autor   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    texto   = models.TextField(max_length=500)
+    creado  = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.autor.username} en {self.receta.titulo}"

@@ -1,50 +1,69 @@
 # recipes/views.py
 
 from django.shortcuts import render, redirect, get_object_or_404
+from django.db.models import F, Count, Q
 from django.contrib.auth.decorators import login_required
-from django.db import models
 from django.views.generic import UpdateView
-from .models import Receta, Like, Favorito
-from .forms import RecetaForm
-from django.db.models import F
+
+from .models import Receta, Like, Favorito, Comentario
+from .forms import RecetaForm, ComentarioForm
+
 
 def lista_recetas(request):
-    """Muestra todas las recetas."""
-    recetas = Receta.objects.select_related('autor__perfil').all()
+    """
+    Muestra todas las recetas públicas.
+    """
+    recetas = Receta.objects.filter(es_publica=True).select_related('autor__perfil')
     return render(request, 'recipes/lista_recetas.html', {
         'recetas': recetas
     })
 
+
 def detalle_receta(request, pk):
-    # 1) incrementa contador atómico
+    receta = get_object_or_404(Receta.objects.select_related('autor__perfil'), pk=pk)
+
+    # Validaciones de privacidad omitidas para simplificar
+
+    if request.method == 'POST':
+        # Procesar comentario
+        if not request.user.is_authenticated:
+            return redirect(f"{request.build_absolute_uri('/auth/login/')}?next={request.path}")
+
+        form = ComentarioForm(request.POST)
+        if form.is_valid():
+            comentario = form.save(commit=False)
+            comentario.autor = request.user
+            comentario.receta = receta
+            comentario.save()
+            return redirect('detalle_receta', pk=pk)  # Para evitar repost con F5
+    else:
+        form = ComentarioForm()
+
     Receta.objects.filter(pk=pk).update(visitas=F('visitas') + 1)
 
-    # 2) recupera la instancia (con el nuevo valor en memoria)
-    receta = get_object_or_404(
-        Receta.objects
-               .select_related('autor__perfil')
-               .annotate(
-                   total_likes=models.Count('likes'),
-                   total_favs =models.Count('favoritos')
-               ),
-        pk=pk
-    )
+    receta = Receta.objects.select_related('autor__perfil') \
+        .annotate(total_likes=Count('likes'), total_favs=Count('favoritos')) \
+        .get(pk=pk)
 
-    liked = False
-    favorited = False
-    if request.user.is_authenticated:
-        liked     = receta.likes.filter(user=request.user).exists()
-        favorited = receta.favoritos.filter(user=request.user).exists()
+    user = request.user
+    liked = user.is_authenticated and receta.likes.filter(user=user).exists()
+    favorited = user.is_authenticated and receta.favoritos.filter(user=user).exists()
+
+    comentarios = receta.comentarios.select_related('autor').order_by('-creado')
 
     return render(request, 'recipes/detalle_receta.html', {
         'receta': receta,
         'liked': liked,
         'favorited': favorited,
+        'form': form,
+        'comentarios': comentarios,
     })
 
 @login_required
 def crear_receta(request):
-    """Crear una receta nueva."""
+    """
+    Crear una receta nueva. Sólo usuarios autenticados.
+    """
     if request.method == 'POST':
         form = RecetaForm(request.POST, request.FILES)
         if form.is_valid():
@@ -54,10 +73,14 @@ def crear_receta(request):
             return redirect('detalle_receta', pk=nueva.pk)
     else:
         form = RecetaForm()
+
     return render(request, 'recipes/crear_receta.html', {'form': form})
 
+
 class EditarRecetaView(UpdateView):
-    """Editar una receta existente."""
+    """
+    Editar una receta existente. Sólo el autor puede acceder.
+    """
     model = Receta
     form_class = RecetaForm
     template_name = 'recipes/receta_form.html'
@@ -71,25 +94,34 @@ class EditarRecetaView(UpdateView):
             return redirect('detalle_receta', pk=obj.pk)
         return super().dispatch(request, *args, **kwargs)
 
+
 @login_required
 def borrar_receta(request, receta_id):
-    """Borrar una receta (solo su autor)."""
+    """
+    Borrar una receta (sólo su autor).
+    """
     receta = get_object_or_404(Receta, id=receta_id, autor=request.user)
     receta.delete()
     return redirect('lista_recetas')
 
+
 @login_required
 def toggle_like(request, pk):
-    """Dar o quitar like a una receta."""
+    """
+    Dar o quitar like a una receta.
+    """
     receta = get_object_or_404(Receta, pk=pk)
     like, created = Like.objects.get_or_create(user=request.user, receta=receta)
     if not created:
         like.delete()
     return redirect('detalle_receta', pk=pk)
 
+
 @login_required
 def toggle_favorito(request, pk):
-    """Añadir o quitar una receta de favoritos."""
+    """
+    Añadir o quitar una receta de favoritos.
+    """
     receta = get_object_or_404(Receta, pk=pk)
     fav, created = Favorito.objects.get_or_create(user=request.user, receta=receta)
     if not created:

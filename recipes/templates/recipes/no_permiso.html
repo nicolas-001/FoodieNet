@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>No tienes permiso para ver esta receta.</h2>
+  <p>La receta es privada y no eres amigo de su autor.</p>
+  <p><a href="{% url 'lista_recetas' %}">← Volver a la lista de recetas</a></p>
+{% endblock %}

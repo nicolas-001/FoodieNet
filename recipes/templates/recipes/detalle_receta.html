@@ -57,6 +57,39 @@
     </p>
   {% endif %}
 
+  <hr class="my-6">
+
+  <h3>Comentarios ({{ receta.comentarios.count }})</h3>
+
+  {% if user.is_authenticated %}
+    <form method="post" action="" class="mb-4">
+      {% csrf_token %}
+      {{ form.texto.errors }}
+      {{ form.texto }}
+      <button type="submit" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded">Publicar comentario</button>
+    </form>
+  {% else %}
+    <p>
+      <a href="{% url 'authentication:login' %}?next={% url 'detalle_receta' receta.pk %}">
+        Inicia sesión
+      </a> para dejar un comentario.
+    </p>
+  {% endif %}
+
+  <ul class="space-y-4">
+    {% for c in comentarios %}
+      <li class="border p-4 rounded">
+        <p class="text-sm text-gray-600">
+          <strong>{{ c.autor.username }}</strong>
+          <span class="ml-2">{{ c.creado|date:"d M Y H:i" }}</span>
+        </p>
+        <p>{{ c.texto }}</p>
+      </li>
+    {% empty %}
+      <li>No hay comentarios todavía. ¡Sé el primero!</li>
+    {% endfor %}
+  </ul>
+
   <hr>
   <p><a href="{% url 'lista_recetas' %}">← Volver a la lista de recetas</a></p>
 {% endblock %}

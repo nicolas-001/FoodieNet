@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Perfil de {{ otro.username }}{% endblock %}
+
+{% block content %}
+  <h2>Perfil de {{ otro.username }}</h2>
+
+  <img src="{{ perfil_otro.foto.url }}" alt="Foto de {{ otro.username }}" width="100" style="border-radius:50%;">
+
+  <p>Biografía: {{ perfil_otro.biografia|default:"(sin biografía)" }}</p>
+
+  <h3>Todas sus recetas</h3>
+  {% if recetas %}
+    <ul>
+      {% for r in recetas %}
+        <li>
+          <a href="{% url 'detalle_receta' r.pk %}">{{ r.titulo }}</a>
+          {% if not r.es_publica %}<span style="color:gray;">(privada)</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No tiene recetas aún.</p>
+  {% endif %}
+{% endblock %}

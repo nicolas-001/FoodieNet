@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Solicitudes de amistad - FoodieNet{% endblock %}
+
+{% block content %}
+  <h1>Solicitudes de amistad</h1>
+
+  {% if solicitudes %}
+    <ul>
+      {% for s in solicitudes %}
+        <li style="margin-bottom:12px;">
+          {{ s.from_user.username }}
+          <a href="{% url 'users:aceptar_solicitud' s.id %}" style="margin-left:8px; color:green;">Aceptar</a>
+          <a href="{% url 'users:rechazar_solicitud' s.id %}" style="margin-left:8px; color:red;">Rechazar</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No tienes solicitudes pendientes.</p>
+  {% endif %}
+{% endblock %}

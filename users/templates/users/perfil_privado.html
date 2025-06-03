@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Perfil de {{ otro.username }}{% endblock %}
+
+{% block content %}
+  <h2>Perfil de {{ otro.username }}</h2>
+
+  <img src="{{ perfil_otro.foto.url }}" alt="Foto de {{ otro.username }}" width="100" style="border-radius:50%;">
+
+  <p>Biografía: {{ perfil_otro.biografia|default:"(sin biografía)" }}</p>
+
+  <h3>Recetas públicas</h3>
+  {% if recetas %}
+    <ul>
+      {% for r in recetas %}
+        <li>
+          <a href="{% url 'detalle_receta' r.pk %}">{{ r.titulo }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No tiene recetas públicas.</p>
+  {% endif %}
+
+  {% if user.is_authenticated and user != otro %}
+    <p>
+      <a href="{% url 'users:enviar_solicitud' otro.id %}">Enviar solicitud de amistad</a>
+    </p>
+  {% endif %}
+{% endblock %}

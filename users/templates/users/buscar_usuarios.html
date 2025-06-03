@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Buscar usuarios – FoodieNet{% endblock %}
+
+{% block content %}
+  <h1>Buscar usuarios</h1>
+
+  <form method="get" class="mb-4">
+    {{ form.query.errors }}
+    {{ form.query }}
+    <button type="submit">Buscar</button>
+  </form>
+
+  {% if resultados %}
+    <ul>
+      {% for u in resultados %}
+        <li style="margin-bottom: 8px;">
+          {# Nombre de usuario como enlace al perfil #}
+          <a href="{% url 'users:perfil_usuario' u.username %}">
+            {{ u.username }}
+          </a>
+          <a href="{% url 'users:enviar_solicitud' u.id %}" style="margin-left: 12px;">
+            Enviar solicitud
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% elif form.is_bound %}
+    <p>No se encontraron resultados.</p>
+  {% endif %}
+{% endblock %}

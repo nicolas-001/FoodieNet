@@ -1,23 +1,51 @@
-{% extends 'base.html' %}
+{# users/templates/users/editar_perfil.html #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Editar mi perfil – FoodieNet{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h2>Editar Foto de Perfil</h2>
+  <h1>Editar perfil</h1>
 
-    {% if user.perfil.foto %}
-        <p>Foto actual:</p>
-        <img src="{{ user.perfil.foto.url }}" alt="Foto de perfil" style="width: 150px; height: 150px; object-fit: cover; border-radius: 50%; border: 2px solid #ccc;">
-    {% else %}
-        <p>No tienes foto de perfil.</p>
-    {% endif %}
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
 
-    <form method="post" enctype="multipart/form-data" class="mt-4">
-        {% csrf_token %}
-        <div class="form-group">
-            {{ form.foto.label_tag }}
-            {{ form.foto }}
-        </div>
-        <button type="submit" class="btn btn-primary mt-3">Guardar cambios</button>
-    </form>
-</div>
+    <fieldset style="border:1px solid #ccc; padding:1rem; margin-bottom:1rem;">
+      <legend>Datos de usuario</legend>
+      {{ form_user.non_field_errors }}
+      <p>
+        <label for="id_username">Nombre de usuario:</label><br>
+        {{ form_user.username.errors }}
+        {{ form_user.username }}
+      </p>
+      <p>
+        <label for="id_email">Correo electrónico:</label><br>
+        {{ form_user.email.errors }}
+        {{ form_user.email }}
+      </p>
+    </fieldset>
+
+    <fieldset style="border:1px solid #ccc; padding:1rem; margin-bottom:1rem;">
+      <legend>Datos de perfil</legend>
+      <p>
+        <label for="id_foto">Foto de perfil:</label><br>
+        {{ form_perfil.foto.errors }}
+        {{ form_perfil.foto }}
+        {% if request.user.perfil.foto.url %}
+          <br>
+          <img src="{{ request.user.perfil.foto.url }}" alt="Foto actual" width="120" style="border-radius:50%; margin-top:0.5rem;">
+        {% endif %}
+      </p>
+      <p>
+        <label for="id_biografia">Biografía:</label><br>
+        {{ form_perfil.biografia.errors }}
+        {{ form_perfil.biografia }}
+      </p>
+    </fieldset>
+
+    <button type="submit" style="padding:0.5rem 1rem; background:#28a745; color:white; border:none; border-radius:4px;">
+      Guardar cambios
+    </button>
+    <a href="{% url 'users:perfil_usuario' request.user.username %}" style="margin-left:1rem;">Cancelar</a>
+  </form>
 {% endblock %}
