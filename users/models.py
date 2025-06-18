@@ -31,14 +31,14 @@ def guardar_perfil_usuario(sender, instance, **kwargs):
     instance.perfil.save()
 
 
-class FriendRequest(models.Model):
-    """Modelo para solicitudes de amistad."""
-    from_user = models.ForeignKey(User, related_name='friend_requests_sent', on_delete=models.CASCADE)
-    to_user   = models.ForeignKey(User, related_name='friend_requests_received', on_delete=models.CASCADE)
-    timestamp = models.DateTimeField(auto_now_add=True)
+class Amistad(models.Model):
+    de_usuario = models.ForeignKey(User, related_name='amistades_enviadas', on_delete=models.CASCADE)
+    para_usuario = models.ForeignKey(User, related_name='amistades_recibidas', on_delete=models.CASCADE)
+    aceptada = models.BooleanField(default=False)
+    fecha = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('from_user', 'to_user')
+        unique_together = ('de_usuario', 'para_usuario')
 
     def __str__(self):
-        return f"{self.from_user.username} le pidió amistad a {self.to_user.username}"
+        return f"{self.de_usuario} → {self.para_usuario} ({'Aceptada' if self.aceptada else 'Pendiente'})"

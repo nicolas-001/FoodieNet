@@ -1,7 +1,7 @@
 # recipes/urls.py
 from django.urls import path
 from . import views
-from .views import crear_receta
+from .views import crear_receta, feed_amigos
 
 urlpatterns = [
     path('recetas/', views.lista_recetas, name='lista_recetas'),
@@ -12,4 +12,5 @@ urlpatterns = [
     path('borrar/<int:receta_id>/', views.borrar_receta, name='borrar_receta'),
     path('recetas/<int:pk>/like/',     views.toggle_like,      name='toggle_like'),
     path('recetas/<int:pk>/favorito/', views.toggle_favorito,  name='toggle_favorito'),
+    path('feed-amigos/', feed_amigos, name='feed_amigos'),
 ]

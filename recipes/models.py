@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import User
+from users.models import Amistad
 
 class Receta(models.Model):
     autor            = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -15,6 +16,12 @@ class Receta(models.Model):
 
     def __str__(self):
         return self.titulo
+    def visible_para(self, user):
+        if not self.es_privada:
+            return True
+        if self.autor == user:
+            return True
+        return Amistad.objects.filter(de_usuario=self.autor, para_usuario=user, aceptada=True).exists()
 
 
 class Like(models.Model):

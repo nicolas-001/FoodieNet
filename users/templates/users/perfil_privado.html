@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% load filtros_amigos %}
+
 
 {% block title %}Perfil de {{ otro.username }}{% endblock %}
 
@@ -6,6 +8,17 @@
   <h2>Perfil de {{ otro.username }}</h2>
 
   <img src="{{ perfil_otro.foto.url }}" alt="Foto de {{ otro.username }}" width="100" style="border-radius:50%;">
+
+ {% load filtros_amigos %}
+
+{% if request.user|es_amigo:otro %}
+  <p>Ya sois amigos</p>
+{% else %}
+  <form method="post" action="{% url 'users:enviar_solicitud' otro.username %}">
+    {% csrf_token %}
+    <button type="submit">Enviar solicitud de amistad</button>
+  </form>
+{% endif %}
 
   <p>Biografía: {{ perfil_otro.biografia|default:"(sin biografía)" }}</p>
 

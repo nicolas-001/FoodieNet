@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Recetas Privadas de Tus Amigos</h2>
+{% for receta in recetas %}
+    <div>
+        <h3>{{ receta.titulo }}</h3>
+        <p>{{ receta.descripcion }}</p>
+    </div>
+{% empty %}
+    <p>No hay recetas privadas de tus amigos aún.</p>
+{% endfor %}
+{% endblock %}

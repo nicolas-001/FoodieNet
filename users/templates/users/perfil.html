@@ -38,7 +38,20 @@
   </div>
 
   <hr>
-
+<h2>Mis amigos</h2>
+{% if amigos %}
+    <ul>
+        {% for amigo in amigos %}
+            <li>
+                <a href="{% url 'users:perfil_usuario' amigo.username %}">
+                    {{ amigo.username }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No tienes amigos aún.</p>
+{% endif %}
   <h2>Mis recetas favoritas</h2>
   {% if favoritos %}
     <ul style="list-style:none; padding:0;">

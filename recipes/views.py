@@ -7,6 +7,7 @@ from django.views.generic import UpdateView
 
 from .models import Receta, Like, Favorito, Comentario
 from .forms import RecetaForm, ComentarioForm
+from users.models import Amistad
 
 
 def lista_recetas(request):
@@ -127,3 +128,15 @@ def toggle_favorito(request, pk):
     if not created:
         fav.delete()
     return redirect('detalle_receta', pk=pk)
+
+@login_required
+def feed_amigos(request):
+    amigos_ids = Amistad.objects.filter(
+        de_usuario=request.user, aceptada=True
+    ).values_list('para_usuario', flat=True)
+
+    recetas = Receta.objects.filter(
+        autor__in=amigos_ids, es_privada=True
+    ).order_by('-id')  # o por fecha
+
+    return render(request, 'recipes/feed_amigos.html', {'recetas': recetas})

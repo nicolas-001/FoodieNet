@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Solicitudes de amistad recibidas</h2>
+
+{% for solicitud in solicitudes %}
+  <div>
+    <p>{{ solicitud.de_usuario.username }} quiere ser tu amigo.</p>
+    <a href="{% url 'users:aceptar_amistad' solicitud.id %}">Aceptar</a>
+    <a href="{% url 'users:rechazar_amistad' solicitud.id %}">Rechazar</a>
+  </div>
+{% empty %}
+  <p>No tienes solicitudes pendientes.</p>
+{% endfor %}
+{% endblock %}
