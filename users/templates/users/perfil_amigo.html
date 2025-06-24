@@ -1,25 +1,65 @@
 {% extends "base.html" %}
 
-{% block title %}Perfil de {{ otro.username }}{% endblock %}
+{% block title %}Perfil de {{ otro.username }} – FoodieNet{% endblock %}
 
 {% block content %}
-  <h2>Perfil de {{ otro.username }}</h2>
+<div class="container my-4">
+  <h2 class="mb-4">Perfil de {{ otro.username }}</h2>
 
-  <img src="{{ perfil_otro.foto.url }}" alt="Foto de {{ otro.username }}" width="100" style="border-radius:50%;">
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <img src="{{ perfil_otro.foto.url }}" 
+         alt="Foto de {{ otro.username }}" 
+         width="100" height="100" 
+         class="rounded-circle"
+         style="object-fit: cover;">
+    <div>
+      <p class="mb-1"><strong>Biografía:</strong> {{ perfil_otro.biografia|default:"(sin biografía)" }}</p>
+      
+      {% if es_amigo %}
+        <span class="badge bg-success">
+          <i class="bi bi-person-check-fill"></i> Amigo
+        </span>
+      {% elif hay_solicitud_pendiente %}
+        <span class="badge bg-warning text-dark">
+          <i class="bi bi-hourglass-split"></i> Solicitud pendiente
+        </span>
+      {% else %}
+        <form method="post" action="{% url 'users:enviar_solicitud' otro.username %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary btn-sm mt-2">
+            <i class="bi bi-person-plus-fill"></i> Enviar solicitud de amistad
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
 
-  <p>Biografía: {{ perfil_otro.biografia|default:"(sin biografía)" }}</p>
+  <h3 class="mb-3">Recetas de {{ otro.username }}</h3>
 
-  <h3>Todas sus recetas</h3>
   {% if recetas %}
-    <ul>
+    <div class="row">
       {% for r in recetas %}
-        <li>
-          <a href="{% url 'detalle_receta' r.pk %}">{{ r.titulo }}</a>
-          {% if not r.es_publica %}<span style="color:gray;">(privada)</span>{% endif %}
-        </li>
+        <div class="col-md-6 mb-3">
+          <div class="card h-100">
+            {% if r.imagen %}
+              <img src="{{ r.imagen.url }}" class="card-img-top" alt="{{ r.titulo }}" style="object-fit: cover; height: 200px;">
+            {% endif %}
+            <div class="card-body">
+              <h5 class="card-title mb-2">
+                <a href="{% url 'detalle_receta' r.pk %}" class="text-decoration-none text-dark">{{ r.titulo }}</a>
+              </h5>
+              {% if not r.es_publica %}
+                <span class="badge bg-secondary">Privada</span>
+              {% else %}
+                <span class="badge bg-success">Pública</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
       {% endfor %}
-    </ul>
+    </div>
   {% else %}
-    <p>No tiene recetas aún.</p>
+    <p class="text-muted">No tiene recetas aún.</p>
   {% endif %}
+</div>
 {% endblock %}

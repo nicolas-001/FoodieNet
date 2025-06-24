@@ -19,9 +19,7 @@
           <a href="{% url 'users:perfil_usuario' u.username %}">
             {{ u.username }}
           </a>
-          <a href="{% url 'users:enviar_solicitud' u.id %}" style="margin-left: 12px;">
-            Enviar solicitud
-          </a>
+         
         </li>
       {% endfor %}
     </ul>

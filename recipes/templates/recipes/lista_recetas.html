@@ -1,21 +1,47 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Lista de Recetas</h1>
-{% if user.is_authenticated %}
-  <a href="{% url 'crear_receta' %}">Crear nueva receta</a>
-{% endif %}
-<ul>
-    {% for receta in recetas %}
-        <li>
-            <h2><a href="{% url 'detalle_receta' receta.pk %}">{{ receta.titulo }}</a></h2>
-            <p>Por: {{ receta.autor.username }}</p>
-    <img src="{{ receta.autor.perfil.foto.url }}" alt="Foto de perfil" style="width:50px; height:50px; border-radius:50%;">
-            <p>{{ receta.descripcion }}</p>
-            <p>{{ receta.ingredientes }}</p>
-            <p>{{ receta.pasos }}</p>
-            <img src="{{ receta.imagen.url }}" alt="{{ receta.titulo }}">
-        </li>
-    {% endfor %}
-</ul>
+<div class="container my-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Lista de Recetas</h1>
+    {% if user.is_authenticated %}
+      <a href="{% url 'crear_receta' %}" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Crear nueva receta
+      </a>
+    {% endif %}
+  </div>
+
+  {% if recetas %}
+    <div class="row g-4">
+      {% for receta in recetas %}
+        <div class="col-md-6">
+          <div class="card h-100 shadow-sm">
+            {% if receta.imagen %}
+              <img src="{{ receta.imagen.url }}" class="card-img-top" alt="{{ receta.titulo }}" style="object-fit: cover; height: 250px;">
+            {% endif %}
+            <div class="card-body">
+              <h5 class="card-title">
+                <a href="{% url 'detalle_receta' receta.pk %}" class="text-decoration-none text-dark">
+                  {{ receta.titulo }}
+                </a>
+              </h5>
+              <div class="d-flex align-items-center mb-2">
+                <img src="{{ receta.autor.perfil.foto.url }}" 
+                     alt="Foto de perfil" 
+                     class="rounded-circle me-2" 
+                     style="width: 40px; height: 40px; object-fit: cover;">
+                <small class="text-muted">Por: {{ receta.autor.username }}</small>
+              </div>
+              <p class="card-text"><strong>Descripción:</strong> {{ receta.descripcion }}</p>
+              <p class="card-text"><strong>Ingredientes:</strong> {{ receta.ingredientes }}</p>
+              <p class="card-text"><strong>Pasos:</strong> {{ receta.pasos }}</p>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted">No hay recetas disponibles.</p>
+  {% endif %}
+</div>
 {% endblock %}

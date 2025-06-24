@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% load filtros_amigos %}
 
-
 {% block title %}Perfil de {{ otro.username }}{% endblock %}
 
 {% block content %}
@@ -9,16 +8,16 @@
 
   <img src="{{ perfil_otro.foto.url }}" alt="Foto de {{ otro.username }}" width="100" style="border-radius:50%;">
 
- {% load filtros_amigos %}
-
-{% if request.user|es_amigo:otro %}
-  <p>Ya sois amigos</p>
-{% else %}
-  <form method="post" action="{% url 'users:enviar_solicitud' otro.username %}">
-    {% csrf_token %}
-    <button type="submit">Enviar solicitud de amistad</button>
-  </form>
-{% endif %}
+  {% if request.user|es_amigo:otro %}
+    <p>Ya sois amigos</p>
+  {% elif solicitud_enviada %}
+    <p id="estado-solicitud">Solicitud pendiente</p>
+  {% else %}
+    <form id="form-solicitud" method="post" action="{% url 'users:enviar_solicitud' otro.username %}">
+      {% csrf_token %}
+      <button type="submit">Enviar solicitud de amistad</button>
+    </form>
+  {% endif %}
 
   <p>Biografía: {{ perfil_otro.biografia|default:"(sin biografía)" }}</p>
 
@@ -35,9 +34,24 @@
     <p>No tiene recetas públicas.</p>
   {% endif %}
 
-  {% if user.is_authenticated and user != otro %}
-    <p>
-      <a href="{% url 'users:enviar_solicitud' otro.id %}">Enviar solicitud de amistad</a>
-    </p>
-  {% endif %}
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+  $(document).ready(function(){
+    $('#form-solicitud').submit(function(e){
+      e.preventDefault();
+      let form = $(this);
+      $.ajax({
+        url: form.attr('action'),
+        type: 'POST',
+        data: form.serialize(),
+        success: function(){
+          form.replaceWith('<p id="estado-solicitud">Solicitud pendiente</p>');
+        },
+        error: function(){
+          alert('Error al enviar la solicitud');
+        }
+      });
+    });
+  });
+  </script>
 {% endblock %}

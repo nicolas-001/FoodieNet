@@ -5,20 +5,20 @@ from recipes.models import Receta, Favorito  # Ajusta si tu modelo se llama dist
 from .forms import UserEditForm,PerfilForm  # Formulario para editar usuario
 from .models import Amistad
 from django.contrib import messages
+from django.http import JsonResponse
 
 
 @login_required
 def perfil(request):
     """
     Muestra el perfil propio y, debajo, el formulario de edición.
-    También muestra la lista de recetas favoritas.
+    También muestra la lista de recetas favoritas y las recetas del usuario.
     """
     usuario = request.user
     perfil = usuario.perfil  # Asegurarse de que el Perfil existe (se crea en signals)
 
-    # Si vinimos por POST, procesamos los formularios
     if request.method == 'POST':
-        form_user   = UserEditForm(request.POST, instance=usuario)
+        form_user = UserEditForm(request.POST, instance=usuario)
         form_perfil = PerfilForm(request.POST, request.FILES, instance=perfil)
 
         if form_user.is_valid() and form_perfil.is_valid():
@@ -26,13 +26,15 @@ def perfil(request):
             form_perfil.save()
             return redirect('users:perfil')
     else:
-        form_user   = UserEditForm(instance=usuario)
+        form_user = UserEditForm(instance=usuario)
         form_perfil = PerfilForm(instance=perfil)
 
-    # Consultamos los favoritos para este usuario (asumiendo related_name='favoritos')
-    favoritos = Favorito.objects.filter(user=usuario) \
-                  .select_related('receta__autor__perfil')
+    favoritos = Favorito.objects.filter(user=usuario).select_related('receta__autor__perfil')
     amigos = obtener_amigos(request.user)
+    solicitudes_pendientes = Amistad.objects.filter(para_usuario=usuario, aceptada=False).select_related('de_usuario')
+    
+    # 👉 Aquí añadimos las recetas subidas por el usuario
+    recetas = usuario.receta_set.all()
 
     return render(
         request,
@@ -42,6 +44,8 @@ def perfil(request):
             'form_perfil': form_perfil,
             'favoritos': favoritos,
             'amigos': amigos,
+            'solicitudes_pendientes': solicitudes_pendientes,
+            'recetas': recetas,  # <-- Añadido al contexto
         }
     )
 @login_required
@@ -109,10 +113,26 @@ def perfil_usuario(request, username):
     perfil_otro = otro.perfil
     recetas_otro = otro.receta_set
 
-    amigos = obtener_amigos(otro)  # 👈 Aquí obtenemos los amigos del perfil que estamos viendo
+    amigos = obtener_amigos(otro)  
+
+    es_amigo = False
+    solicitud_pendiente = False
 
     if request.user.is_authenticated:
-        if request.user.perfil.amigos.filter(pk=perfil_otro.pk).exists():
+        # Ver si son amigos
+        es_amigo = Amistad.objects.filter(
+            (Q(de_usuario=request.user) & Q(para_usuario=otro) & Q(aceptada=True)) |
+            (Q(de_usuario=otro) & Q(para_usuario=request.user) & Q(aceptada=True))
+        ).exists()
+
+        # Ver si hay una solicitud pendiente
+        solicitud_pendiente = Amistad.objects.filter(
+            (Q(de_usuario=request.user) & Q(para_usuario=otro) & Q(aceptada=False)) |
+            (Q(de_usuario=otro) & Q(para_usuario=request.user) & Q(aceptada=False))
+        ).exists()
+
+        # Determinar recetas y plantilla
+        if es_amigo:
             recetas = recetas_otro.all()
             template = 'users/perfil_amigo.html'
         else:
@@ -126,7 +146,9 @@ def perfil_usuario(request, username):
         'otro': otro,
         'perfil_otro': perfil_otro,
         'recetas': recetas,
-        'amigos': amigos  
+        'amigos': amigos,
+        'es_amigo': es_amigo,
+        'solicitud_pendiente': solicitud_pendiente
     })
 @login_required
 def solicitudes_amistad(request):
@@ -134,20 +156,35 @@ def solicitudes_amistad(request):
     return render(request, 'users/solicitudes_amistad.html', {'solicitudes': solicitudes})
 
 @login_required
-def aceptar_amistad(request, amistad_id):
-    amistad = get_object_or_404(Amistad, id=amistad_id, para_usuario=request.user)
-    amistad.aceptada = True
-    amistad.save()
-    return redirect('users:solicitudes_amistad')
+def aceptar_amistad(request, solicitud_id):
+    if request.method == "POST" and request.is_ajax():
+        solicitud = get_object_or_404(Amistad, id=solicitud_id, para_usuario=request.user)
+        # Añadir amigos mutuamente
+        request.user.perfil.amigos.add(solicitud.de_usuario.perfil)
+        solicitud.de_usuario.perfil.amigos.add(request.user.perfil)
+        solicitud.delete()
+
+        # Obtener nueva lista de amigos para devolver al cliente
+        amigos = obtener_amigos(request.user)
+        amigos_data = [{'username': a.username} for a in amigos]
+
+        return JsonResponse({'status': 'ok', 'amigos': amigos_data, 'solicitud_id': solicitud_id})
+    return JsonResponse({'status': 'error'}, status=400)
 
 @login_required
-def rechazar_amistad(request, amistad_id):
-    amistad = get_object_or_404(Amistad, id=amistad_id, para_usuario=request.user)
-    amistad.delete()
-    return redirect('users:solicitudes_amistad')
+def rechazar_amistad(request, solicitud_id):
+    if request.method == "POST" and request.is_ajax():
+        solicitud = get_object_or_404(Amistad, id=solicitud_id, para_usuario=request.user)
+        solicitud.delete()
+        return JsonResponse({'status': 'ok', 'solicitud_id': solicitud_id})
+    return JsonResponse({'status': 'error'}, status=400)
 
 @login_required
 def enviar_solicitud(request, username):
+    if request.method != "POST":
+        messages.error(request, "Acción no permitida.")
+        return redirect('users:perfil_usuario', username=username)
+
     if username == request.user.username:
         messages.error(request, "No puedes enviarte una solicitud a ti mismo.")
         return redirect('users:perfil_usuario', username=username)
@@ -155,11 +192,8 @@ def enviar_solicitud(request, username):
     para_usuario = get_object_or_404(User, username=username)
 
     ya_existe = Amistad.objects.filter(
-        de_usuario=request.user,
-        para_usuario=para_usuario
-    ).exists() or Amistad.objects.filter(
-        de_usuario=para_usuario,
-        para_usuario=request.user
+        (Q(de_usuario=request.user) & Q(para_usuario=para_usuario)) |
+        (Q(de_usuario=para_usuario) & Q(para_usuario=request.user))
     ).exists()
 
     if ya_existe:

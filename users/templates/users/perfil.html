@@ -1,98 +1,203 @@
-{# users/templates/users/perfil.html #}
 {% extends "base.html" %}
 {% load static %}
+{% load filtros_amigos %}
+{% load recetas_extras %}
 
 {% block title %}Mi perfil – FoodieNet{% endblock %}
 
 {% block content %}
-  <h1>Mi perfil</h1>
+<div class="container my-4">
+  <h1 class="mb-4">Mi perfil</h1>
 
-  <div style="display:flex; align-items:center; gap:1rem; margin-bottom:2rem;">
-    {# Foto de perfil #}
+  <div class="d-flex align-items-center gap-3 mb-4">
     <img src="{{ request.user.perfil.foto.url }}"
          alt="Foto de {{ request.user.username }}"
-         width="100"
-         style="border-radius:50%; object-fit:cover;">
-
+         class="rounded-circle"
+         width="100" height="100"
+         style="object-fit: cover;">
     <div>
-      <p><strong>Nombre de usuario:</strong> {{ request.user.username }}</p>
-      <p><strong>Correo:</strong> {{ request.user.email }}</p>
-      <p><strong>Biografía:</strong> 
-        {{ request.user.perfil.biografia|default:"(sin biografía)" }}
-      </p>
-      <p>
-        <a href="{% url 'users:editar_perfil' %}"
-           style="
-             display:inline-block;
-             padding:0.4rem 0.8rem;
-             background:#007bff;
-             color:white;
-             border-radius:4px;
-             text-decoration:none;
-             margin-top:0.5rem;
-           ">
-          Editar mi perfil
-        </a>
-      </p>
+      <p class="mb-1"><strong>Nombre de usuario:</strong> {{ request.user.username }}</p>
+      <p class="mb-1"><strong>Correo:</strong> {{ request.user.email }}</p>
+      <p class="mb-1"><strong>Biografía:</strong> {{ request.user.perfil.biografia|default:"(sin biografía)" }}</p>
+      <a href="{% url 'users:editar_perfil' %}" class="btn btn-primary mt-2">Editar mi perfil</a>
     </div>
   </div>
 
-  <hr>
-<h2>Mis amigos</h2>
-{% if amigos %}
-    <ul>
-        {% for amigo in amigos %}
-            <li>
-                <a href="{% url 'users:perfil_usuario' amigo.username %}">
-                    {{ amigo.username }}
-                </a>
-            </li>
+  <div class="dropdown mb-4">
+    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownSolicitudes" data-bs-toggle="dropdown" aria-expanded="false">
+      Solicitudes de amistad (<span id="countSolicitudes">{{ solicitudes_pendientes.count }}</span>)
+    </button>
+    <ul class="dropdown-menu" aria-labelledby="dropdownSolicitudes" id="listaSolicitudes">
+      {% if solicitudes_pendientes %}
+        {% for solicitud in solicitudes_pendientes %}
+          <li class="dropdown-item d-flex justify-content-between align-items-center" id="solicitud-{{ solicitud.id }}">
+            <span>{{ solicitud.de_usuario.username }}</span>
+            <div>
+              <button class="btn btn-sm btn-success aceptar-btn" data-id="{{ solicitud.id }}">Aceptar</button>
+              <button class="btn btn-sm btn-danger rechazar-btn" data-id="{{ solicitud.id }}">Rechazar</button>
+            </div>
+          </li>
         {% endfor %}
+      {% else %}
+        <li class="dropdown-item text-muted" id="noSolicitudes">No hay solicitudes pendientes</li>
+      {% endif %}
     </ul>
-{% else %}
-    <p>No tienes amigos aún.</p>
-{% endif %}
-  <h2>Mis recetas favoritas</h2>
-  {% if favoritos %}
-    <ul style="list-style:none; padding:0;">
-      {% for fav in favoritos %}
-        <li style="
-              border:1px solid #e0e0e0;
-              border-radius:4px;
-              margin-bottom:1rem;
-              padding:1rem;
-              display:flex;
-              align-items:center;
-              gap:1rem;
-            ">
-          {% if fav.receta.imagen %}
-            <img src="{{ fav.receta.imagen.url }}"
-                 alt="{{ fav.receta.titulo }}"
-                 width="80"
-                 style="border-radius:4px; object-fit:cover;">
-          {% endif %}
-          <div>
-            <a href="{% url 'detalle_receta' fav.receta.pk %}"
-               style="
-                 font-size:1.1rem;
-                 font-weight:bold;
-                 color:#333;
-                 text-decoration:none;
-               ">
-              {{ fav.receta.titulo }}
-            </a>
-            <p style="margin:0.3rem 0; color:#555;">
-              Por 
-              <a href="{% url 'users:perfil_usuario' fav.receta.autor.username %}"
-                 style="color:#007bff; text-decoration:none;">
-                {{ fav.receta.autor.username }}
-              </a>
-            </p>
-          </div>
+  </div>
+
+  <h2 class="mb-3">Mis amigos</h2>
+  <ul class="list-group mb-4" id="listaAmigos">
+    {% if amigos %}
+      {% for amigo in amigos %}
+        <li class="list-group-item d-flex align-items-center gap-2">
+          <a href="{% url 'users:perfil_usuario' amigo.username %}" class="d-flex align-items-center text-decoration-none text-dark">
+            <img src="{{ amigo.perfil.foto.url }}" alt="Avatar de {{ amigo.username }}" 
+                 width="32" height="32" class="rounded-circle border border-secondary" style="object-fit: cover;">
+            <span>{{ amigo.username }}</span>
+          </a>
         </li>
       {% endfor %}
-    </ul>
+    {% else %}
+      <li class="list-group-item text-muted" id="sinAmigos">No tienes amigos aún.</li>
+    {% endif %}
+  </ul>
+
+  <h2 class="mb-3">Mis recetas subidas</h2>
+  {% if recetas %}
+    <div class="row">
+      {% for r in recetas %}
+        <div class="col-md-6 mb-3">
+          <div class="card h-100">
+            {% if r.imagen %}
+              <img src="{{ r.imagen.url }}" class="card-img-top" alt="{{ r.titulo }}" style="object-fit: cover; height: 200px;">
+            {% endif %}
+            <div class="card-body">
+              <h5 class="card-title">
+                <a href="{% url 'detalle_receta' r.pk %}" class="text-decoration-none text-dark">{{ r.titulo }}</a>
+              </h5>
+              <span class="badge {{ r.es_publica|badge_class }}">{{ r.es_publica|badge_label }}</span>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No has subido ninguna receta aún.</p>
+  {% endif %}
+
+  <h2 class="mt-4 mb-3">Mis recetas favoritas</h2>
+  {% if favoritos %}
+    <div class="row">
+      {% for fav in favoritos %}
+        <div class="col-md-6 mb-3">
+          <div class="card h-100">
+            {% if fav.receta.imagen %}
+              <img src="{{ fav.receta.imagen.url }}" class="card-img-top" alt="{{ fav.receta.titulo }}" style="object-fit: cover; height: 200px;">
+            {% endif %}
+            <div class="card-body">
+              <h5 class="card-title">
+                <a href="{% url 'detalle_receta' fav.receta.pk %}" class="text-decoration-none text-dark">{{ fav.receta.titulo }}</a>
+              </h5>
+              <p class="card-text">
+                Por <a href="{% url 'users:perfil_usuario' fav.receta.autor.username %}" class="text-decoration-none">{{ fav.receta.autor.username }}</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
   {% else %}
     <p>No tienes recetas favoritas aún.</p>
   {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  function actualizarListaAmigos(amigos) {
+    const lista = document.getElementById('listaAmigos');
+    lista.innerHTML = '';
+    if (amigos.length === 0) {
+      lista.innerHTML = '<li class="list-group-item text-muted" id="sinAmigos">No tienes amigos aún.</li>';
+    } else {
+      amigos.forEach(amigo => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item d-flex align-items-center gap-2';
+        const a = document.createElement('a');
+        a.href = `/users/perfil/${amigo.username}/`;
+        a.className = 'd-flex align-items-center text-decoration-none text-dark';
+
+        const img = document.createElement('img');
+        img.src = amigo.perfil_foto_url;  // asegúrate que la API JSON te devuelva esta URL
+        img.alt = `Avatar de ${amigo.username}`;
+        img.width = 32;
+        img.height = 32;
+        img.className = 'rounded-circle border border-secondary';
+        img.style.objectFit = 'cover';
+
+        const span = document.createElement('span');
+        span.textContent = amigo.username;
+
+        a.appendChild(img);
+        a.appendChild(span);
+        li.appendChild(a);
+        lista.appendChild(li);
+      });
+    }
+  }
+
+  function actualizarSolicitudesPendientes(solicitudId) {
+    const li = document.getElementById('solicitud-' + solicitudId);
+    if (li) li.remove();
+    const listaSolicitudes = document.getElementById('listaSolicitudes');
+    if (!listaSolicitudes.querySelector('.dropdown-item')) {
+      listaSolicitudes.innerHTML = '<li class="dropdown-item text-muted" id="noSolicitudes">No hay solicitudes pendientes</li>';
+    }
+    const countElem = document.getElementById('countSolicitudes');
+    const nuevasSolicitudes = listaSolicitudes.querySelectorAll('.dropdown-item').length;
+    countElem.textContent = nuevasSolicitudes;
+  }
+
+  document.addEventListener('click', function(e) {
+    if (e.target.matches('.aceptar-btn')) {
+      const solicitudId = e.target.dataset.id;
+      fetch("{% url 'users:aceptar_amistad' 0 %}".replace('0', solicitudId), {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'ok') {
+          actualizarListaAmigos(data.amigos);
+          actualizarSolicitudesPendientes(data.solicitud_id);
+        } else {
+          alert('Error al aceptar la solicitud');
+        }
+      })
+      .catch(() => alert('Error de red al aceptar la solicitud'));
+    }
+
+    if (e.target.matches('.rechazar-btn')) {
+      const solicitudId = e.target.dataset.id;
+      fetch("{% url 'users:rechazar_amistad' 0 %}".replace('0', solicitudId), {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'ok') {
+          actualizarSolicitudesPendientes(data.solicitud_id);
+        } else {
+          alert('Error al rechazar la solicitud');
+        }
+      })
+      .catch(() => alert('Error de red al rechazar la solicitud'));
+    }
+  });
+});
+</script>
 {% endblock %}
