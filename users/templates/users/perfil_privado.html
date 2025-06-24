@@ -4,35 +4,50 @@
 {% block title %}Perfil de {{ otro.username }}{% endblock %}
 
 {% block content %}
-  <h2>Perfil de {{ otro.username }}</h2>
+  <div class="perfil-container">
+    <h2 class="perfil-titulo">Perfil de {{ otro.username }}</h2>
 
-  <img src="{{ perfil_otro.foto.url }}" alt="Foto de {{ otro.username }}" width="100" style="border-radius:50%;">
+    <div class="perfil-header">
+      <img src="{{ perfil_otro.foto.url }}" alt="Foto de {{ otro.username }}" class="perfil-foto">
+    
+      <div class="solicitud-container">
+        {% if request.user.is_authenticated %}
+          {% if request.user|es_amigo:otro %}
+            <p>Ya sois amigos</p>
+          {% elif solicitud_enviada %}
+            <p id="estado-solicitud">Solicitud pendiente</p>
+          {% else %}
+            <form id="form-solicitud" method="post" action="{% url 'users:enviar_solicitud' otro.username %}">
+              {% csrf_token %}
+              <button type="submit">Enviar solicitud de amistad</button>
+            </form>
+          {% endif %}
+        {% else %}
+          <p><a href="{% url 'authentication:login' %}">Inicia sesión</a> para enviar una solicitud de amistad.</p>
+        {% endif %}
+      </div>
+    </div>
 
-  {% if request.user|es_amigo:otro %}
-    <p>Ya sois amigos</p>
-  {% elif solicitud_enviada %}
-    <p id="estado-solicitud">Solicitud pendiente</p>
-  {% else %}
-    <form id="form-solicitud" method="post" action="{% url 'users:enviar_solicitud' otro.username %}">
-      {% csrf_token %}
-      <button type="submit">Enviar solicitud de amistad</button>
-    </form>
-  {% endif %}
+    <section class="perfil-biografia">
+      <h3>Biografía</h3>
+      <p>{{ perfil_otro.biografia|default:"(sin biografía)" }}</p>
+    </section>
 
-  <p>Biografía: {{ perfil_otro.biografia|default:"(sin biografía)" }}</p>
-
-  <h3>Recetas públicas</h3>
-  {% if recetas %}
-    <ul>
-      {% for r in recetas %}
-        <li>
-          <a href="{% url 'detalle_receta' r.pk %}">{{ r.titulo }}</a>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>No tiene recetas públicas.</p>
-  {% endif %}
+    <section class="perfil-recetas">
+      <h3>Recetas públicas</h3>
+      {% if recetas %}
+        <ul class="lista-recetas">
+          {% for r in recetas %}
+            <li>
+              <a href="{% url 'detalle_receta' r.pk %}" class="enlace-receta">{{ r.titulo }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>No tiene recetas públicas.</p>
+      {% endif %}
+    </section>
+  </div>
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script>
@@ -45,7 +60,7 @@
         type: 'POST',
         data: form.serialize(),
         success: function(){
-          form.replaceWith('<p id="estado-solicitud">Solicitud pendiente</p>');
+          form.replaceWith('<p id="estado-solicitud" class="info-solicitud">Solicitud pendiente</p>');
         },
         error: function(){
           alert('Error al enviar la solicitud');

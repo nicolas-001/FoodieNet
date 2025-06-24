@@ -1,9 +1,57 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block title %}Registro de Usuario{% endblock %}
+
 {% block content %}
+<style>
+  .form-container {
+    max-width: 400px;
+    margin: 40px auto;
+    padding: 25px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+
+  .form-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .btn-primary {
+    background-color: #f97316; /* naranja */
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  .btn-primary:hover {
+    background-color: #d15c0a;
+  }
+
+  .link {
+    color: #f97316; /* naranja */
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .link:hover {
+    text-decoration: underline;
+  }
+</style>
+
+<div class="form-container">
   <h2>Registro de usuario</h2>
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">Registrarse</button>
+    <button type="submit" class="btn-primary">Registrarse</button>
   </form>
+  <p>¿Ya tienes cuenta? <a href="{% url 'authentication:login' %}" class="link">Iniciar sesión</a></p>
+</div>
 {% endblock %}
+

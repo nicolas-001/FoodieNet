@@ -1,10 +1,52 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
+{% block title %}Iniciar sesión{% endblock %}
 
 {% block content %}
-<h2>Iniciar sesión</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Entrar</button>
-</form>
+  <div style="max-width: 400px; margin: 50px auto; padding: 30px; border: 1px solid #ddd; border-radius: 10px; box-shadow: 2px 2px 15px rgba(0,0,0,0.1); background-color: #fafafa;">
+    <h1 style="text-align: center; color: #4CAF50; margin-bottom: 20px;">Bienvenido a FoodieNet</h1>
+    <p style="text-align: center; margin-bottom: 20px;">Inicia sesión para continuar</p>
+    
+    <form method="post" style="display: flex; flex-direction: column; gap: 15px;">
+        {% csrf_token %}
+
+        {% for field in form %}
+          <div style="display: flex; flex-direction: column;">
+            <label style="margin-bottom: 5px; font-weight: bold;">{{ field.label_tag }}</label>
+            {{ field }}
+            {% if field.errors %}
+              <span style="color: red; font-size: 0.9em;">{{ field.errors|striptags }}</span>
+            {% endif %}
+          </div>
+        {% endfor %}
+
+        <button type="submit" style="background-color: #4CAF50; color: white; padding: 10px 0; border: none; border-radius: 5px; cursor: pointer; font-size: 1em;">
+          Iniciar sesión
+        </button>
+    </form>
+
+    <p style="text-align: center; margin-top: 15px; font-size: 0.9em;">
+      ¿No tienes cuenta?
+      <a href="{% url 'authentication:login' %}" style="color: #4CAF50; text-decoration: none;">Regístrate</a>
+    </p>
+  </div>
+
+  <style>
+    input[type="text"],
+    input[type="password"] {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 1em;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      border-color: #4CAF50;
+      outline: none;
+      box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+    }
+  </style>
 {% endblock %}

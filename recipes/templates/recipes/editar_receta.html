@@ -3,11 +3,53 @@
 {% block title %}Editar Receta{% endblock %}
 
 {% block content %}
-  <h1>Editar Receta</h1>
-  <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      {{ form.as_p }}
-      <button type="submit">Guardar cambios</button>
-  </form>
-  <a href="{% url 'detalle_receta' object.pk %}">Cancelar</a>
+  <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; box-shadow: 2px 2px 12px rgba(0,0,0,0.1); background-color: #fafafa;">
+    <h1 style="text-align: center; color: #4CAF50;">Editar Receta</h1>
+    <form method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 15px;">
+        {% csrf_token %}
+        
+        {# Renderizamos los campos uno a uno con estilos bonitos #}
+        {% for field in form %}
+          <div style="display: flex; flex-direction: column;">
+            <label style="margin-bottom: 5px; font-weight: bold;">{{ field.label_tag }}</label>
+            {{ field }}
+            {% if field.errors %}
+              <span style="color: red; font-size: 0.9em;">{{ field.errors|striptags }}</span>
+            {% endif %}
+          </div>
+        {% endfor %}
+
+        <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+          <button type="submit" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+            Guardar cambios
+          </button>
+          <a href="{% url 'detalle_receta' object.pk %}" style="background-color: #f44336; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+            Cancelar
+          </a>
+        </div>
+    </form>
+  </div>
+
+  <style>
+    input[type="text"],
+    input[type="file"],
+    textarea,
+    select {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 1em;
+    }
+
+    input[type="text"]:focus,
+    input[type="file"]:focus,
+    textarea:focus,
+    select:focus {
+      border-color: #4CAF50;
+      outline: none;
+      box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+    }
+  </style>
 {% endblock %}

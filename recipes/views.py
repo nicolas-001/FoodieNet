@@ -84,7 +84,7 @@ class EditarRecetaView(UpdateView):
     """
     model = Receta
     form_class = RecetaForm
-    template_name = 'recipes/receta_form.html'
+    template_name = 'recipes/editar_receta.html'
 
     def get_success_url(self):
         return redirect('detalle_receta', pk=self.object.pk).url

@@ -1,0 +1,216 @@
+.btn {
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    color: white;
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+  }
+  
+  /* Color principal: naranja */
+  .btn-primary {
+    background-color: #f97316;
+  }
+  
+  .btn-primary:hover {
+    background-color: #c65c00;
+  }
+  
+  /* Color secundario: verde */
+  .btn-secondary {
+    background-color: #10b981;
+  }
+  
+  .btn-secondary:hover {
+    background-color: #0f9a70;
+  }
+  .perfil-container {
+    max-width: 720px;
+    margin: 2rem auto;
+    padding: 1rem 2rem;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  .perfil-titulo {
+    text-align: center;
+    color: #333;
+    margin-bottom: 1.5rem;
+  }
+  
+  .perfil-header {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* espacio entre avatar y solicitud */
+    margin-bottom: 20px;
+  }
+  
+  .perfil-foto {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #4CAF50; /* borde verde */
+    flex-shrink: 0; /* que no se reduzca si no hay espacio */
+  }
+  
+  .perfil-acciones {
+    flex: 1;
+    min-width: 200px;
+    text-align: center;
+  }
+  .solicitud-container {
+    margin-left: auto; /* empuja solicitud al extremo derecho */
+  }
+  
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: background-color 0.3s ease;
+    font-size: 1rem;
+  }
+  
+  .btn-primary {
+    background-color: #4CAF50; /* verde */
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background-color: #45a049;
+  }
+  
+  .btn-secondary {
+    background-color: #f0ad4e; /* naranja */
+    color: white;
+  }
+  
+  .btn-secondary:hover {
+    background-color: #ec971f;
+  }
+  
+  .info-amigos, .info-solicitud, .mensaje-login {
+    font-size: 1.1rem;
+    color: #555;
+    margin: 1rem 0;
+  }
+  
+  .perfil-biografia, .perfil-recetas {
+    margin-bottom: 2rem;
+  }
+  
+  .perfil-biografia h3,
+  .perfil-recetas h3 {
+    border-bottom: 2px solid #4CAF50;
+    padding-bottom: 0.3rem;
+    color: #4CAF50;
+    margin-bottom: 1rem;
+  }
+  
+  .lista-recetas {
+    list-style: none;
+    padding-left: 0;
+  }
+  
+  .lista-recetas li {
+    margin-bottom: 0.7rem;
+  }
+  
+  .enlace-receta {
+    text-decoration: none;
+    color: #337ab7;
+    font-weight: 600;
+  }
+  
+  .enlace-receta:hover {
+    text-decoration: underline;
+    color: #23527c;
+  }
+  .buscar-container {
+    max-width: 720px;
+    margin: 2rem auto;
+    padding: 1rem 2rem;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  .buscar-titulo {
+    text-align: center;
+    color: #333;
+    margin-bottom: 1.5rem;
+  }
+  
+  .buscar-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+  }
+  
+  .buscar-form input[type="text"] {
+    flex-grow: 1;
+    padding: 8px 12px;
+    border: 2px solid #4CAF50;
+    border-radius: 5px;
+    font-size: 1rem;
+  }
+  
+  .buscar-form button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-weight: 600;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 1rem;
+  }
+  
+  .buscar-form button:hover {
+    background-color: #45a049;
+  }
+  
+  .lista-usuarios {
+    list-style: none;
+    padding-left: 0;
+  }
+  
+  .lista-usuarios li {
+    margin-bottom: 12px;
+    font-size: 1.1rem;
+  }
+  
+  .lista-usuarios a {
+    text-decoration: none;
+    color: #337ab7;
+    font-weight: 600;
+  }
+  
+  .lista-usuarios a:hover {
+    text-decoration: underline;
+    color: #23527c;
+  }
+  
+  .sin-resultados {
+    font-style: italic;
+    color: #555;
+    text-align: center;
+  }
+  .input-buscar {
+    flex-grow: 1;
+    padding: 8px 12px;
+    border: 2px solid #4CAF50;
+    border-radius: 5px;
+    font-size: 1rem;
+  }

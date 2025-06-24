@@ -3,27 +3,27 @@
 {% block title %}Buscar usuarios – FoodieNet{% endblock %}
 
 {% block content %}
-  <h1>Buscar usuarios</h1>
+  <div class="buscar-container">
+    <h1 class="buscar-titulo">Buscar usuarios</h1>
 
-  <form method="get" class="mb-4">
-    {{ form.query.errors }}
-    {{ form.query }}
-    <button type="submit">Buscar</button>
-  </form>
+    <form method="get" class="buscar-form">
+      {{ form.query.errors }}
+      <input type="text" name="query" value="{{ request.GET.query }}" placeholder="Buscar usuarios..." class="input-buscar" />
+      <button type="submit">Buscar</button>
+    </form>
 
-  {% if resultados %}
-    <ul>
-      {% for u in resultados %}
-        <li style="margin-bottom: 8px;">
-          {# Nombre de usuario como enlace al perfil #}
-          <a href="{% url 'users:perfil_usuario' u.username %}">
-            {{ u.username }}
-          </a>
-         
-        </li>
-      {% endfor %}
-    </ul>
-  {% elif form.is_bound %}
-    <p>No se encontraron resultados.</p>
-  {% endif %}
+    {% if resultados %}
+      <ul class="lista-usuarios">
+        {% for u in resultados %}
+          <li>
+            <a href="{% url 'users:perfil_usuario' u.username %}">
+              {{ u.username }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% elif form.is_bound %}
+      <p class="sin-resultados">No se encontraron resultados.</p>
+    {% endif %}
+  </div>
 {% endblock %}

@@ -1,10 +1,53 @@
 {% extends 'base.html' %}
+{% load form_tags %}
 
 {% block content %}
-  <h2>Nueva Receta</h2>
-  <form method="POST" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Guardar receta</button>
-  </form>
+<div class="container my-4">
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <h2 class="mb-0">Nueva Receta</h2>
+    </div>
+    <div class="card-body">
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label for="{{ form.titulo.id_for_label }}" class="form-label">Título</label>
+          {{ form.titulo|add_class:"form-control" }}
+        </div>
+
+        <div class="mb-3">
+          <label for="{{ form.descripcion.id_for_label }}" class="form-label">Descripción</label>
+          {{ form.descripcion|add_class:"form-control" }}
+        </div>
+
+        <div class="mb-3">
+          <label for="{{ form.ingredientes.id_for_label }}" class="form-label">Ingredientes</label>
+          {{ form.ingredientes|add_class:"form-control" }}
+        </div>
+
+        <div class="mb-3">
+          <label for="{{ form.pasos.id_for_label }}" class="form-label">Pasos</label>
+          {{ form.pasos|add_class:"form-control" }}
+        </div>
+
+        <div class="mb-3">
+          <label for="{{ form.imagen.id_for_label }}" class="form-label">Imagen</label>
+          {{ form.imagen|add_class:"form-control" }}
+        </div>
+
+        <div class="mb-3">
+          <label for="{{ form.es_publica.id_for_label }}" class="form-label">¿Es pública?</label>
+          {{ form.es_publica|add_class:"form-check-input" }}
+        </div>
+
+        <div class="d-grid">
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-save"></i> Guardar receta
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}
