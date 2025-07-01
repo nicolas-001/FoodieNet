@@ -1,4 +1,7 @@
 from django import template
+from django.db.models import Q
+from users.models import Amistad
+
 
 register = template.Library()
 

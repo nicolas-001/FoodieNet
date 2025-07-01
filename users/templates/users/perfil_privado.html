@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% load filtros_amigos %}
 
 {% block title %}Perfil de {{ otro.username }}{% endblock %}
@@ -8,7 +9,11 @@
     <h2 class="perfil-titulo">Perfil de {{ otro.username }}</h2>
 
     <div class="perfil-header">
-      <img src="{{ perfil_otro.foto.url }}" alt="Foto de {{ otro.username }}" class="perfil-foto">
+      {% if perfil_otro.foto %}
+        <img src="{{ perfil_otro.foto.url }}" alt="Foto de {{ otro.username }}" class="perfil-foto">
+      {% else %}
+        <img src="{% static 'perfiles/default.jpeg' %}" alt="Foto por defecto" class="perfil-foto">
+      {% endif %}
     
       <div class="solicitud-container">
         {% if request.user.is_authenticated %}

@@ -8,18 +8,28 @@ from django.views.generic import UpdateView
 from .models import Receta, Like, Favorito, Comentario
 from .forms import RecetaForm, ComentarioForm
 from users.models import Amistad
+from django.core.paginator import Paginator
 
 
 def lista_recetas(request):
-    """
-    Muestra todas las recetas públicas.
-    """
-    recetas = Receta.objects.filter(es_publica=True).select_related('autor__perfil')
+    usuario = request.user
+    if usuario.is_authenticated:
+        amigos = usuario.perfil.obtener_amigos()
+        recetas_qs = Receta.objects.filter(
+            Q(es_publica=True) | 
+            Q(es_publica=False, autor__in=amigos)
+        ).select_related('autor__perfil').distinct().order_by('-fecha_creacion')
+    else:
+        recetas_qs = Receta.objects.filter(es_publica=True).select_related('autor__perfil').order_by('-fecha_creacion')
+
+    # Paginación: 10 recetas por página
+    paginator = Paginator(recetas_qs, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     return render(request, 'recipes/lista_recetas.html', {
-        'recetas': recetas
+        'page_obj': page_obj,
     })
-
-
 def detalle_receta(request, pk):
     receta = get_object_or_404(Receta.objects.select_related('autor__perfil'), pk=pk)
 
@@ -131,12 +141,33 @@ def toggle_favorito(request, pk):
 
 @login_required
 def feed_amigos(request):
-    amigos_ids = Amistad.objects.filter(
-        de_usuario=request.user, aceptada=True
-    ).values_list('para_usuario', flat=True)
+    if not request.user.is_authenticated:
+        # Redirigir o mostrar mensaje si no está autenticado
+        # Por ejemplo, redirigir al login:
+        from django.shortcuts import redirect
+        return redirect('login')
 
+    # Obtener amistades aceptadas donde el usuario es de_usuario o para_usuario
+    amistades = Amistad.objects.filter(
+        Q(de_usuario=request.user) | Q(para_usuario=request.user),
+        aceptada=True
+    )
+
+    amigos_ids = set()
+    for amistad in amistades:
+        if amistad.de_usuario != request.user:
+            amigos_ids.add(amistad.de_usuario.id)
+        if amistad.para_usuario != request.user:
+            amigos_ids.add(amistad.para_usuario.id)
+
+    # Obtener recetas de amigos: públicas o privadas (de esos amigos)
     recetas = Receta.objects.filter(
-        autor__in=amigos_ids, es_privada=True
-    ).order_by('-id')  # o por fecha
+        autor__id__in=amigos_ids
+    ).order_by('-fecha_creacion')
 
-    return render(request, 'recipes/feed_amigos.html', {'recetas': recetas})
+    # PAGINACIÓN: 10 recetas por página
+    paginator = Paginator(recetas, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'recipes/feed_amigos.html', {'page_obj': page_obj})

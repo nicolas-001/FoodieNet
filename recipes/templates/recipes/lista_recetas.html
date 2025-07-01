@@ -11,19 +11,24 @@
     {% endif %}
   </div>
 
-  {% if recetas %}
+  {% if page_obj %}
     <div class="row g-4">
-      {% for receta in recetas %}
+      {% for receta in page_obj %}
         <div class="col-md-6">
           <div class="card h-100 shadow-sm">
             {% if receta.imagen %}
               <img src="{{ receta.imagen.url }}" class="card-img-top" alt="{{ receta.titulo }}" style="object-fit: cover; height: 250px;">
             {% endif %}
             <div class="card-body">
-              <h5 class="card-title">
+              <h5 class="card-title d-flex align-items-center">
                 <a href="{% url 'detalle_receta' receta.pk %}" class="text-decoration-none text-dark">
                   {{ receta.titulo }}
                 </a>
+                {% if receta.es_publica %}
+                  <i class="bi bi-globe ms-2" title="Receta pública" style="color: green;"></i>
+                {% else %}
+                  <i class="bi bi-lock-fill ms-2" title="Receta privada" style="color: red;"></i>
+                {% endif %}
               </h5>
               <div class="d-flex align-items-center mb-2">
                 <img src="{{ receta.autor.perfil.foto.url }}" 
@@ -40,6 +45,58 @@
         </div>
       {% endfor %}
     </div>
+
+    <!-- PAGINACIÓN BOOTSTRAP -->
+    <nav aria-label="Paginación de recetas" class="mt-4">
+      <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page=1" aria-label="Primera">
+              <span aria-hidden="true">&laquo;&laquo;</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Anterior">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">&laquo;&laquo;</span>
+          </li>
+          <li class="page-item disabled">
+            <span class="page-link">&laquo;</span>
+          </li>
+        {% endif %}
+
+        <li class="page-item disabled">
+          <span class="page-link">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+          </span>
+        </li>
+
+        {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Siguiente">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Última">
+              <span aria-hidden="true">&raquo;&raquo;</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">&raquo;</span>
+          </li>
+          <li class="page-item disabled">
+            <span class="page-link">&raquo;&raquo;</span>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+
   {% else %}
     <p class="text-muted">No hay recetas disponibles.</p>
   {% endif %}

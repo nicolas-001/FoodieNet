@@ -93,25 +93,30 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.core.paginator import Paginator
 
 def buscar_usuarios(request):
     query = request.GET.get('query')
-    resultados = []
+    resultados = User.objects.none()
 
     if query:
-        resultados = User.objects.filter(username__icontains=query)
+        resultados = User.objects.filter(username__icontains=query).order_by('username')
+
+    # Paginación: 10 usuarios por página
+    paginator = Paginator(resultados, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     return render(request, 'users/buscar_usuarios.html', {
-        'resultados': resultados,
+        'page_obj': page_obj,
         'query': query
     })
-
 
 
 def perfil_usuario(request, username):
     otro = get_object_or_404(User, username=username)
     perfil_otro = otro.perfil
-    recetas_otro = otro.receta_set
+    recetas_otro = otro.receta_set.all()
 
     amigos = obtener_amigos(otro)  
 
@@ -119,37 +124,30 @@ def perfil_usuario(request, username):
     solicitud_pendiente = False
 
     if request.user.is_authenticated:
-        # Ver si son amigos
         es_amigo = Amistad.objects.filter(
             (Q(de_usuario=request.user) & Q(para_usuario=otro) & Q(aceptada=True)) |
             (Q(de_usuario=otro) & Q(para_usuario=request.user) & Q(aceptada=True))
         ).exists()
 
-        # Ver si hay una solicitud pendiente
         solicitud_pendiente = Amistad.objects.filter(
             (Q(de_usuario=request.user) & Q(para_usuario=otro) & Q(aceptada=False)) |
             (Q(de_usuario=otro) & Q(para_usuario=request.user) & Q(aceptada=False))
         ).exists()
 
-        # Determinar recetas y plantilla
-        if es_amigo:
-            recetas = recetas_otro.all()
-            template = 'users/perfil_amigo.html'
-        else:
-            recetas = recetas_otro.filter(es_publica=True)
-            template = 'users/perfil_privado.html'
-    else:
-        recetas = recetas_otro.filter(es_publica=True)
-        template = 'users/perfil_privado.html'
+    # Separamos las recetas según privacidad
+    recetas_publicas = recetas_otro.filter(es_publica=True)
+    recetas_privadas = recetas_otro.filter(es_publica=False)
 
-    return render(request, template, {
+    return render(request, 'users/perfil_usuario.html', {
         'otro': otro,
         'perfil_otro': perfil_otro,
-        'recetas': recetas,
+        'recetas_publicas': recetas_publicas,
+        'recetas_privadas': recetas_privadas,
         'amigos': amigos,
         'es_amigo': es_amigo,
         'solicitud_pendiente': solicitud_pendiente
     })
+
 @login_required
 def solicitudes_amistad(request):
     solicitudes = Amistad.objects.filter(para_usuario=request.user, aceptada=False)

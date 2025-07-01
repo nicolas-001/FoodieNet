@@ -7,22 +7,74 @@
     <h1 class="buscar-titulo">Buscar usuarios</h1>
 
     <form method="get" class="buscar-form">
-      {{ form.query.errors }}
-      <input type="text" name="query" value="{{ request.GET.query }}" placeholder="Buscar usuarios..." class="input-buscar" />
+      <input type="text" name="query" value="{{ query }}" placeholder="Buscar usuarios..." class="input-buscar" />
       <button type="submit">Buscar</button>
     </form>
 
-    {% if resultados %}
+    {% if page_obj and page_obj.object_list %}
       <ul class="lista-usuarios">
-        {% for u in resultados %}
-          <li>
-            <a href="{% url 'users:perfil_usuario' u.username %}">
-              {{ u.username }}
+        {% for u in page_obj.object_list %}
+          <li class="usuario-item" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <a href="{% url 'users:perfil_usuario' u.username %}" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit;">
+              <img src="{{ u.perfil.foto.url }}" 
+                   alt="Foto de {{ u.username }}" 
+                   width="50" height="50" 
+                   class="rounded-circle"
+                   style="object-fit: cover;">
+
+              <div>
+                <strong>{{ u.username }}</strong><br>
+                <small class="text-muted">
+                  {{ u.perfil.biografia|default:"(sin biografía)"|truncatechars:60 }}
+                </small>
+              </div>
             </a>
           </li>
         {% endfor %}
       </ul>
-    {% elif form.is_bound %}
+
+      <!-- Paginación -->
+      <nav aria-label="Navegación de páginas">
+        <ul class="pagination justify-content-center">
+          {% if page_obj.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?query={{ query }}&page={{ page_obj.previous_page_number }}" aria-label="Anterior">
+                <span aria-hidden="true">&laquo;</span>
+              </a>
+            </li>
+          {% else %}
+            <li class="page-item disabled">
+              <span class="page-link">&laquo;</span>
+            </li>
+          {% endif %}
+
+          {% for num in page_obj.paginator.page_range %}
+            {% if num == page_obj.number %}
+              <li class="page-item active" aria-current="page">
+                <span class="page-link">{{ num }}</span>
+              </li>
+            {% elif num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+              <li class="page-item">
+                <a class="page-link" href="?query={{ query }}&page={{ num }}">{{ num }}</a>
+              </li>
+            {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?query={{ query }}&page={{ page_obj.next_page_number }}" aria-label="Siguiente">
+                <span aria-hidden="true">&raquo;</span>
+              </a>
+            </li>
+          {% else %}
+            <li class="page-item disabled">
+              <span class="page-link">&raquo;</span>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+
+    {% elif query %}
       <p class="sin-resultados">No se encontraron resultados.</p>
     {% endif %}
   </div>

@@ -10,11 +10,19 @@
   <h1 class="mb-4">Mi perfil</h1>
 
   <div class="d-flex align-items-center gap-3 mb-4">
-    <img src="{{ request.user.perfil.foto.url }}"
-         alt="Foto de {{ request.user.username }}"
-         class="rounded-circle"
-         width="100" height="100"
-         style="object-fit: cover;">
+    {% if request.user.perfil.foto %}
+      <img src="{{ request.user.perfil.foto.url }}"
+           alt="Foto de {{ request.user.username }}"
+           class="rounded-circle"
+           width="100" height="100"
+           style="object-fit: cover;">
+    {% else %}
+      <img src="{% static 'perfiles/default.jpeg' %}"
+           alt="Foto de perfil por defecto"
+           class="rounded-circle"
+           width="100" height="100"
+           style="object-fit: cover;">
+    {% endif %}
     <div>
       <p class="mb-1"><strong>Nombre de usuario:</strong> {{ request.user.username }}</p>
       <p class="mb-1"><strong>Correo:</strong> {{ request.user.email }}</p>
@@ -50,8 +58,13 @@
       {% for amigo in amigos %}
         <li class="list-group-item d-flex align-items-center gap-2">
           <a href="{% url 'users:perfil_usuario' amigo.username %}" class="d-flex align-items-center text-decoration-none text-dark">
-            <img src="{{ amigo.perfil.foto.url }}" alt="Avatar de {{ amigo.username }}" 
-                 width="32" height="32" class="rounded-circle border border-secondary" style="object-fit: cover;">
+            {% if amigo.perfil.foto %}
+              <img src="{{ amigo.perfil.foto.url }}" alt="Avatar de {{ amigo.username }}" 
+                   width="32" height="32" class="rounded-circle border border-secondary" style="object-fit: cover;">
+            {% else %}
+              <img src="{% static 'perfiles/default.jpeg' %}" alt="Avatar por defecto" 
+                   width="32" height="32" class="rounded-circle border border-secondary" style="object-fit: cover;">
+            {% endif %}
             <span>{{ amigo.username }}</span>
           </a>
         </li>

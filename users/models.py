@@ -2,6 +2,7 @@
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -16,10 +17,25 @@ class Perfil(models.Model):
         blank=True
     )
     biografia = models.TextField(blank=True)
-    amigos = models.ManyToManyField('self', blank=True)
+    # Puedes eliminar este campo si no lo usas para evitar confusión
+    # amigos = models.ManyToManyField('self', blank=True)
 
     def __str__(self):
         return f'Perfil de {self.user.username}'
+
+    def obtener_amigos(self):
+        from users.models import Amistad  # Importar aquí para evitar problemas circulares
+        amistades_aceptadas = Amistad.objects.filter(
+            Q(de_usuario=self.user, aceptada=True) |
+            Q(para_usuario=self.user, aceptada=True)
+        )
+        amigos = []
+        for amistad in amistades_aceptadas:
+            if amistad.de_usuario == self.user:
+                amigos.append(amistad.para_usuario)
+            else:
+                amigos.append(amistad.de_usuario)
+        return amigos
 
 @receiver(post_save, sender=User)
 def crear_perfil_usuario(sender, instance, created, **kwargs):
