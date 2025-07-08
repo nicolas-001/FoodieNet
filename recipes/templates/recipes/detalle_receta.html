@@ -57,6 +57,15 @@
     </p>
   {% endif %}
 
+  <!-- BOTÓN PARA CALCULAR CALORÍAS Y MACROS -->
+  <hr class="my-6">
+
+  <button id="btnCalcularMacros" class="btn btn-primary" style="padding:8px 16px; font-size:1em; cursor:pointer;">
+    Calcular calorías y macros
+  </button>
+
+  <div id="resultadosMacros" style="margin-top:16px; font-size:1em; color:#333;"></div>
+
   <hr class="my-6">
 
   <h3>Comentarios ({{ receta.comentarios.count }})</h3>
@@ -92,4 +101,53 @@
 
   <hr>
   <p><a href="{% url 'lista_recetas' %}">← Volver a la lista de recetas</a></p>
+
+  <script>
+    document.getElementById("btnCalcularMacros").addEventListener("click", function() {
+      const resultadosDiv = document.getElementById("resultadosMacros");
+      resultadosDiv.innerText = "Calculando... ⏳";
+
+      fetch(`/calcular_calorias/{{ receta.id }}/`)
+        .then(response => {
+          if (!response.ok) throw new Error("Error al calcular macros");
+          return response.json();
+        })
+        .then(data => {
+          if (data.status === "ok") {
+            let html = `
+              <p>✅ <strong>Cálculo completado:</strong></p>
+              <ul>
+                <li>Calorías: ${data.calorias.toFixed(2)} kcal</li>
+                <li>Proteínas: ${data.proteinas.toFixed(2)} g</li>
+                <li>Grasas: ${data.grasas.toFixed(2)} g</li>
+                <li>Carbohidratos: ${data.carbohidratos.toFixed(2)} g</li>
+              </ul>
+            `;
+
+            if (data.detalle_por_ingrediente && data.detalle_por_ingrediente.length > 0) {
+              html += "<h4>Detalle por ingrediente:</h4><ul>";
+              data.detalle_por_ingrediente.forEach(ing => {
+                html += `
+                  <li>
+                    <strong>${ing.nombre}</strong>:
+                    ${ing.calorias.toFixed(2)} kcal,
+                    ${ing.proteinas.toFixed(2)} g proteínas,
+                    ${ing.grasas.toFixed(2)} g grasas,
+                    ${ing.carbohidratos.toFixed(2)} g carbohidratos
+                  </li>
+                `;
+              });
+              html += "</ul>";
+            }
+
+            resultadosDiv.innerHTML = html;
+          } else {
+            resultadosDiv.innerText = "Error al calcular macros.";
+          }
+        })
+        .catch(error => {
+          resultadosDiv.innerText = "❌ " + error.message;
+        });
+    });
+  </script>
 {% endblock %}

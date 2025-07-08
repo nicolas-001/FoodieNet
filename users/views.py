@@ -154,21 +154,38 @@ def solicitudes_amistad(request):
     return render(request, 'users/solicitudes_amistad.html', {'solicitudes': solicitudes})
 
 @login_required
-def aceptar_amistad(request, solicitud_id):
-    if request.method == "POST" and request.is_ajax():
-        solicitud = get_object_or_404(Amistad, id=solicitud_id, para_usuario=request.user)
-        # Añadir amigos mutuamente
-        request.user.perfil.amigos.add(solicitud.de_usuario.perfil)
-        solicitud.de_usuario.perfil.amigos.add(request.user.perfil)
-        solicitud.delete()
+def aceptar_amistad(request, amistad_id):
+    if request.method == "POST":
+        solicitud = get_object_or_404(Amistad, id=amistad_id, para_usuario=request.user, aceptada=False)
+        solicitud.aceptada = True
+        solicitud.save()
 
-        # Obtener nueva lista de amigos para devolver al cliente
-        amigos = obtener_amigos(request.user)
-        amigos_data = [{'username': a.username} for a in amigos]
+        # Obtener amigos aceptados
+        amigos_qs = Amistad.objects.filter(
+            Q(de_usuario=request.user) | Q(para_usuario=request.user),
+            aceptada=True
+        )
 
-        return JsonResponse({'status': 'ok', 'amigos': amigos_data, 'solicitud_id': solicitud_id})
+        amigos_list = []
+        for amistad in amigos_qs:
+            # Obtener el usuario amigo (el otro usuario en la relación)
+            if amistad.de_usuario == request.user:
+                amigo = amistad.para_usuario
+            else:
+                amigo = amistad.de_usuario
+
+            amigos_list.append({
+                'username': amigo.username,
+                'perfil_foto_url': amigo.perfil.foto.url if amigo.perfil.foto else '/static/perfiles/default.jpeg'
+            })
+
+        return JsonResponse({
+            'status': 'ok',
+            'amistad_id': solicitud.id,
+            'amigos': amigos_list,
+        })
+
     return JsonResponse({'status': 'error'}, status=400)
-
 @login_required
 def rechazar_amistad(request, solicitud_id):
     if request.method == "POST" and request.is_ajax():

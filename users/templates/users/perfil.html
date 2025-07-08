@@ -158,59 +158,97 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function actualizarSolicitudesPendientes(solicitudId) {
-    const li = document.getElementById('solicitud-' + solicitudId);
-    if (li) li.remove();
-    const listaSolicitudes = document.getElementById('listaSolicitudes');
-    if (!listaSolicitudes.querySelector('.dropdown-item')) {
-      listaSolicitudes.innerHTML = '<li class="dropdown-item text-muted" id="noSolicitudes">No hay solicitudes pendientes</li>';
-    }
-    const countElem = document.getElementById('countSolicitudes');
-    const nuevasSolicitudes = listaSolicitudes.querySelectorAll('.dropdown-item').length;
-    countElem.textContent = nuevasSolicitudes;
+  const li = document.getElementById('solicitud-' + solicitudId);
+  if (li) li.remove();
+  const listaSolicitudes = document.getElementById('listaSolicitudes');
+  if (!listaSolicitudes.querySelector('.dropdown-item')) {
+    listaSolicitudes.innerHTML = '<li class="dropdown-item text-muted" id="noSolicitudes">No hay solicitudes pendientes</li>';
   }
+  const countElem = document.getElementById('countSolicitudes');
+  const nuevasSolicitudes = listaSolicitudes.querySelectorAll('.dropdown-item').length;
+  countElem.textContent = nuevasSolicitudes;
+}
 
-  document.addEventListener('click', function(e) {
-    if (e.target.matches('.aceptar-btn')) {
-      const solicitudId = e.target.dataset.id;
-      fetch("{% url 'users:aceptar_amistad' 0 %}".replace('0', solicitudId), {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': '{{ csrf_token }}',
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-      })
-      .then(res => res.json())
-      .then(data => {
+document.addEventListener('click', function(e) {
+  if (e.target.matches('.aceptar-btn')) {
+    const solicitudId = e.target.dataset.id;
+    fetch("{% url 'users:aceptar_amistad' 0 %}".replace('0', solicitudId), {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),  // Enviar body vacío para POST
+    })
+    .then(res => {
+      console.log('Respuesta HTTP recibida:', res);
+      if (!res.ok) {
+        throw new Error('HTTP error ' + res.status);
+      }
+      return res.text();  // Primero obtener texto para ver qué recibimos
+    })
+    .then(text => {
+      console.log('Texto recibido en respuesta:', text);
+      try {
+        const data = JSON.parse(text);  // Intentar parsear JSON
+        console.log('JSON parseado correctamente:', data);
         if (data.status === 'ok') {
           actualizarListaAmigos(data.amigos);
           actualizarSolicitudesPendientes(data.solicitud_id);
         } else {
           alert('Error al aceptar la solicitud');
         }
-      })
-      .catch(() => alert('Error de red al aceptar la solicitud'));
-    }
+      } catch(err) {
+        console.error('Error al parsear JSON:', err);
+        alert('Respuesta no es un JSON válido');
+      }
+    })
+    .catch(err => {
+      console.error('Error capturado en fetch:', err);
+      alert('Error de red al aceptar la solicitud');
+    });
+  }
 
-    if (e.target.matches('.rechazar-btn')) {
-      const solicitudId = e.target.dataset.id;
-      fetch("{% url 'users:rechazar_amistad' 0 %}".replace('0', solicitudId), {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': '{{ csrf_token }}',
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-      })
-      .then(res => res.json())
-      .then(data => {
+  if (e.target.matches('.rechazar-btn')) {
+    const solicitudId = e.target.dataset.id;
+    fetch("{% url 'users:rechazar_amistad' 0 %}".replace('0', solicitudId), {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    })
+    .then(res => {
+      console.log('Respuesta HTTP recibida (rechazar):', res);
+      if (!res.ok) {
+        throw new Error('HTTP error ' + res.status);
+      }
+      return res.text();
+    })
+    .then(text => {
+      console.log('Texto recibido (rechazar):', text);
+      try {
+        const data = JSON.parse(text);
+        console.log('JSON parseado (rechazar):', data);
         if (data.status === 'ok') {
           actualizarSolicitudesPendientes(data.solicitud_id);
         } else {
           alert('Error al rechazar la solicitud');
         }
-      })
-      .catch(() => alert('Error de red al rechazar la solicitud'));
-    }
-  });
+      } catch(err) {
+        console.error('Error al parsear JSON (rechazar):', err);
+        alert('Respuesta no es un JSON válido');
+      }
+    })
+    .catch(err => {
+      console.error('Error capturado en fetch (rechazar):', err);
+      alert('Error de red al rechazar la solicitud');
+    });
+  }
 });
+})
 </script>
 {% endblock %}

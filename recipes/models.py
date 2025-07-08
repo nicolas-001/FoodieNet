@@ -13,6 +13,10 @@ class Receta(models.Model):
     es_publica       = models.BooleanField(default=True)
     fecha_creacion   = models.DateTimeField(auto_now_add=True)
     visitas          = models.PositiveIntegerField(default=0)   # <-- nuevo campo
+    calorias = models.FloatField(null=True, blank=True)
+    proteinas = models.FloatField(null=True, blank=True)
+    grasas = models.FloatField(null=True, blank=True)
+    carbohidratos = models.FloatField(null=True, blank=True)
 
     def __str__(self):
         return self.titulo

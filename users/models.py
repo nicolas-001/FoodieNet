@@ -13,7 +13,7 @@ class Perfil(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     foto = models.ImageField(
         upload_to=ruta_foto_perfil,
-        default='perfiles/default.jpeg',
+        default='perfiles/default.jpg',
         blank=True
     )
     biografia = models.TextField(blank=True)

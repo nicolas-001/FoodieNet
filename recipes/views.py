@@ -4,12 +4,17 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import F, Count, Q
 from django.contrib.auth.decorators import login_required
 from django.views.generic import UpdateView
+from django.conf import settings
+from django.views.decorators.http import require_GET
 
 from .models import Receta, Like, Favorito, Comentario
 from .forms import RecetaForm, ComentarioForm
 from users.models import Amistad
 from django.core.paginator import Paginator
-
+import os, re
+import requests
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
 
 def lista_recetas(request):
     usuario = request.user
@@ -171,3 +176,134 @@ def feed_amigos(request):
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'recipes/feed_amigos.html', {'page_obj': page_obj})
+
+import os
+import requests
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.views.decorators.http import require_GET
+from .models import Receta
+
+def limpiar_y_dividir_ingredientes(ingredientes_lista):
+    nuevos_ingredientes = []
+    for ing in ingredientes_lista:
+        if " o " in ing.lower():
+            partes = ing.lower().split(" o ")
+            for parte in partes:
+                parte_limpia = parte.strip().capitalize()
+                nuevos_ingredientes.append(parte_limpia)
+        else:
+            nuevos_ingredientes.append(ing)
+    return nuevos_ingredientes
+
+def obtener_info_nutricional_spoonacular(ingredientes_lista, api_key):
+    url = "https://api.spoonacular.com/recipes/parseIngredients"
+
+    ingredientes_como_texto = "\n".join(ingredientes_lista)
+    payload = {
+        "ingredientList": ingredientes_como_texto,
+        "servings": 1,
+        "includeNutrition": True
+    }
+
+    params = {
+        "apiKey": api_key
+    }
+
+    try:
+        print(f"[DEBUG] Enviando a Spoonacular: payload={payload} params={params}")
+        response = requests.post(url, params=params, data=payload)
+        print(f"[DEBUG] Código de respuesta: {response.status_code}")
+        print(f"[DEBUG] Texto de respuesta: {response.text[:500]}")
+    except requests.RequestException as e:
+        print(f"[Error conexión Spoonacular] {e}")
+        return None
+
+    if response.status_code == 200:
+        try:
+            data = response.json()
+        except Exception as e:
+            print(f"[Error parsing JSON Spoonacular] {e}")
+            return None
+
+        # ... (el resto del parseo igual que antes) ...
+
+        resultado = {
+            "calorias_totales": 0,
+            "proteinas_totales": 0,
+            "grasas_totales": 0,
+            "carbohidratos_totales": 0,
+            "ingredientes": []
+        }
+
+        for ingrediente in data:
+            nutr = ingrediente.get("nutrition", {})
+            nutrientes = nutr.get("nutrients", [])
+            calorias = next((n["amount"] for n in nutrientes if n["name"] == "Calories"), 0)
+            proteinas = next((n["amount"] for n in nutrientes if n["name"] == "Protein"), 0)
+            grasas = next((n["amount"] for n in nutrientes if n["name"] == "Fat"), 0)
+            carbs = next((n["amount"] for n in nutrientes if n["name"] == "Carbohydrates"), 0)
+
+            resultado["calorias_totales"] += calorias
+            resultado["proteinas_totales"] += proteinas
+            resultado["grasas_totales"] += grasas
+            resultado["carbohidratos_totales"] += carbs
+
+            resultado["ingredientes"].append({
+                "nombre": ingrediente.get("name"),
+                "calorias": calorias,
+                "proteinas": proteinas,
+                "grasas": grasas,
+                "carbohidratos": carbs
+            })
+
+        print(f"[DEBUG] Resultado parseado: {resultado}")
+        return resultado
+
+    else:
+        print(f"[Error Spoonacular] Código: {response.status_code} - Respuesta: {response.text}")
+        return None
+
+
+    
+
+@require_GET
+def calcular_calorias_macros(request, receta_id):
+    receta = get_object_or_404(Receta, id=receta_id)
+
+    api_key = os.getenv('SPOONACULAR_API_KEY')
+    if not api_key:
+        print("API key no configurada")
+        return JsonResponse({'error': 'API key no configurada'}, status=500)
+
+    texto_ingredientes = receta.ingredientes.strip()
+    if not texto_ingredientes:
+        print("No hay ingredientes para analizar")
+        return JsonResponse({'error': 'No hay ingredientes para analizar'}, status=400)
+
+    ingredientes_lista = [linea.strip() for linea in texto_ingredientes.splitlines() if linea.strip()]
+    print(f"[DEBUG] Ingredientes antes de limpiar y dividir: {ingredientes_lista}")
+
+    ingredientes_lista = limpiar_y_dividir_ingredientes(ingredientes_lista)
+    print(f"[DEBUG] Ingredientes después de limpiar y dividir: {ingredientes_lista}")
+
+    detalle = obtener_info_nutricional_spoonacular(ingredientes_lista, api_key)
+    if detalle is None:
+        print("Error al obtener info nutricional de Spoonacular")
+        return JsonResponse({'error': 'Error en la API de Spoonacular o API key inválida'}, status=500)
+
+    print(f"Guardando datos nutricionales en la receta {receta_id}: {detalle}")
+    receta.calorias = detalle["calorias_totales"]
+    receta.proteinas = detalle["proteinas_totales"]
+    receta.grasas = detalle["grasas_totales"]
+    receta.carbohidratos = detalle["carbohidratos_totales"]
+    receta.save()
+
+    return JsonResponse({
+        'status': 'ok',
+        'calorias': detalle["calorias_totales"],
+        'proteinas': detalle["proteinas_totales"],
+        'grasas': detalle["grasas_totales"],
+        'carbohidratos': detalle["carbohidratos_totales"],
+        'detalle_por_ingrediente': detalle["ingredientes"]
+    })
