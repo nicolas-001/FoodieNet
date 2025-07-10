@@ -13,5 +13,6 @@ urlpatterns = [
     path('recetas/<int:pk>/like/',     views.toggle_like,      name='toggle_like'),
     path('recetas/<int:pk>/favorito/', views.toggle_favorito,  name='toggle_favorito'),
     path('feed_amigos/', feed_amigos, name='feed_amigos'),
-     path('calcular_calorias/<int:receta_id>/', views.calcular_calorias_macros, name='calcular_calorias'),
+    path('calcular_calorias/<int:receta_id>/', views.calcular_calorias_macros, name='calcular_calorias'),
+    path('probar_recomendador/', views.prueba_recomendador, name='prueba_recomendador'),
 ]

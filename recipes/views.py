@@ -15,6 +15,9 @@ import os, re
 import requests
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
+from recipes.utils.traductor import traducir_ingrediente_a_ingles
+from .utils.recomendador import recomendar_recetas
+
 
 def lista_recetas(request):
     usuario = request.user
@@ -178,7 +181,7 @@ def feed_amigos(request):
     return render(request, 'recipes/feed_amigos.html', {'page_obj': page_obj})
 
 import os
-import requests
+import requests, json
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET
@@ -199,7 +202,10 @@ def limpiar_y_dividir_ingredientes(ingredientes_lista):
 def obtener_info_nutricional_spoonacular(ingredientes_lista, api_key):
     url = "https://api.spoonacular.com/recipes/parseIngredients"
 
-    ingredientes_como_texto = "\n".join(ingredientes_lista)
+    # Traducción previa al inglés
+    ingredientes_traducidos = [traducir_ingrediente_a_ingles(ing) for ing in ingredientes_lista]
+
+    ingredientes_como_texto = "\n".join(ingredientes_traducidos)
     payload = {
         "ingredientList": ingredientes_como_texto,
         "servings": 1,
@@ -211,10 +217,13 @@ def obtener_info_nutricional_spoonacular(ingredientes_lista, api_key):
     }
 
     try:
-        print(f"[DEBUG] Enviando a Spoonacular: payload={payload} params={params}")
+        print(f"[DEBUG] Enviando a Spoonacular:\nPayload={payload}\nParams={params}")
         response = requests.post(url, params=params, data=payload)
         print(f"[DEBUG] Código de respuesta: {response.status_code}")
-        print(f"[DEBUG] Texto de respuesta: {response.text[:500]}")
+        if len(response.text) > 500:
+            print(f"[DEBUG] Respuesta (recortada): {response.text[:500]}...")
+        else:
+            print(f"[DEBUG] Respuesta completa: {response.text}")
     except requests.RequestException as e:
         print(f"[Error conexión Spoonacular] {e}")
         return None
@@ -226,8 +235,6 @@ def obtener_info_nutricional_spoonacular(ingredientes_lista, api_key):
             print(f"[Error parsing JSON Spoonacular] {e}")
             return None
 
-        # ... (el resto del parseo igual que antes) ...
-
         resultado = {
             "calorias_totales": 0,
             "proteinas_totales": 0,
@@ -236,7 +243,7 @@ def obtener_info_nutricional_spoonacular(ingredientes_lista, api_key):
             "ingredientes": []
         }
 
-        for ingrediente in data:
+        for idx, ingrediente in enumerate(data):
             nutr = ingrediente.get("nutrition", {})
             nutrientes = nutr.get("nutrients", [])
             calorias = next((n["amount"] for n in nutrientes if n["name"] == "Calories"), 0)
@@ -249,8 +256,16 @@ def obtener_info_nutricional_spoonacular(ingredientes_lista, api_key):
             resultado["grasas_totales"] += grasas
             resultado["carbohidratos_totales"] += carbs
 
+            cantidad = ingrediente.get("amount", 0)
+            unidad = ingrediente.get("unit", "")
+            cantidad_texto = f"{cantidad} {unidad}".strip()
+
+            # Nombre original en español
+            nombre_original = ingredientes_lista[idx]
+
             resultado["ingredientes"].append({
-                "nombre": ingrediente.get("name"),
+                "nombre": nombre_original,
+                "cantidad": cantidad_texto,
                 "calorias": calorias,
                 "proteinas": proteinas,
                 "grasas": grasas,
@@ -263,7 +278,6 @@ def obtener_info_nutricional_spoonacular(ingredientes_lista, api_key):
     else:
         print(f"[Error Spoonacular] Código: {response.status_code} - Respuesta: {response.text}")
         return None
-
 
     
 
@@ -307,3 +321,21 @@ def calcular_calorias_macros(request, receta_id):
         'carbohidratos': detalle["carbohidratos_totales"],
         'detalle_por_ingrediente': detalle["ingredientes"]
     })
+def recomendar_recetas(ingredientes):
+    # Simulación de recomendación según ingredientes
+    recetas = [
+        {"id": 1, "nombre": "Pizza", "ingredientes": ["harina", "tomate", "queso"]},
+        {"id": 2, "nombre": "Ensalada", "ingredientes": ["lechuga", "tomate", "aceite"]},
+        {"id": 3, "nombre": "Tortilla", "ingredientes": ["huevos", "patata", "aceite"]},
+    ]
+    # Filtrar recetas que contengan al menos uno de los ingredientes dados
+    return [r for r in recetas if any(i in ingredientes for i in r["ingredientes"])]
+
+def prueba_recomendador(request):
+    ingredientes = request.GET.getlist('ingredientes')
+    recomendaciones = recomendar_recetas(ingredientes)
+    if request.GET.get('format') == 'json':
+        return JsonResponse({"recomendaciones": recomendaciones})
+    else:
+        # Renderizar plantilla con recomendaciones
+        return render(request, "recipes/recomendaciones.html", {"recomendaciones": recomendaciones, "ingredientes": ingredientes})

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Recomendaciones de Recetas</title>
+</head>
+<body>
+    <h1>Recetas recomendadas según: {{ ingredientes|join:", " }}</h1>
+    {% if recomendaciones %}
+        <ul>
+        {% for receta in recomendaciones %}
+            <li>
+                <strong>{{ receta.nombre }}</strong><br/>
+                Ingredientes: {{ receta.ingredientes|join:", " }}
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No se encontraron recetas con esos ingredientes.</p>
+    {% endif %}
+</body>
+</html>
