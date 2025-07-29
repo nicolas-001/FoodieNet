@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
             name='Perfil',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('foto', models.ImageField(blank=True, default='default.jpg', upload_to=users.models.ruta_foto_perfil)),
+                ('foto', models.ImageField(blank=True, default='default.jpeg', upload_to=users.models.ruta_foto_perfil)),
                 ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
             ],
         ),

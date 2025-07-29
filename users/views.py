@@ -95,22 +95,37 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.core.paginator import Paginator
 
-def buscar_usuarios(request):
+from django.core.paginator import Paginator
+from recipes.models import Receta  # importa tu modelo de Receta
+
+def buscar_usuarios_y_recetas(request):
     query = request.GET.get('query')
-    resultados = User.objects.none()
+    
+    usuarios = User.objects.none()
+    recetas = Receta.objects.none()
 
     if query:
-        resultados = User.objects.filter(username__icontains=query).order_by('username')
+        usuarios = User.objects.filter(username__icontains=query).order_by('username')
+        recetas = Receta.objects.filter(
+            titulo__icontains=query
+        ).order_by('titulo')
 
-    # Paginación: 10 usuarios por página
-    paginator = Paginator(resultados, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    # Paginación usuarios (10 por página)
+    paginator_usuarios = Paginator(usuarios, 10)
+    page_number_usuarios = request.GET.get('page_usuarios')
+    page_obj_usuarios = paginator_usuarios.get_page(page_number_usuarios)
 
-    return render(request, 'users/buscar_usuarios.html', {
-        'page_obj': page_obj,
+    # Paginación recetas (opcional, 10 por página)
+    paginator_recetas = Paginator(recetas, 10)
+    page_number_recetas = request.GET.get('page_recetas')
+    page_obj_recetas = paginator_recetas.get_page(page_number_recetas)
+
+    return render(request, 'users/buscar_usuarios_y_recetas.html', {
+        'page_obj_usuarios': page_obj_usuarios,
+        'page_obj_recetas': page_obj_recetas,
         'query': query
     })
+
 
 
 def perfil_usuario(request, username):

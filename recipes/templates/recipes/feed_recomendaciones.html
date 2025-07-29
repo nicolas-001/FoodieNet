@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Recomendaciones para: "{{ query }}"</h2>
+
+{% if recetas %}
+    <ul>
+    {% for receta in recetas %}
+        <li>
+            <strong>{{ receta.titulo }}</strong><br>
+            Ingredientes: {{ receta.ingredientes }}<br>
+            Autor: {{ receta.autor.username }}
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No se encontraron recetas.</p>
+{% endif %}
+
+<a href="{% url 'seleccionar_ingredientes' %}">Cambiar ingredientes</a>
+{% endblock %}

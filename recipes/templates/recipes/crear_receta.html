@@ -37,8 +37,24 @@
         </div>
 
         <div class="mb-3">
-          <label for="{{ form.es_publica.id_for_label }}" class="form-label">¿Es pública?</label>
+          <label for="{{ form.dificultad.id_for_label }}" class="form-label">Dificultad</label>
+          {{ form.dificultad|add_class:"form-select" }}
+        </div>
+
+        <div class="mb-3">
+          <label for="{{ form.tiempo_preparacion.id_for_label }}" class="form-label">Tiempo de preparación (minutos)</label>
+          {{ form.tiempo_preparacion|add_class:"form-control" }}
+        </div>
+
+        <div class="mb-3">
+          <label for="{{ form.tags.id_for_label }}" class="form-label">Etiquetas</label>
+          <small class="form-text text-muted">Separa las etiquetas con comas, por ejemplo: pasta, saludable, rápida</small>
+          {{ form.tags|add_class:"form-control" }}
+        </div>
+
+        <div class="mb-3 form-check">
           {{ form.es_publica|add_class:"form-check-input" }}
+          <label for="{{ form.es_publica.id_for_label }}" class="form-check-label">¿Es pública?</label>
         </div>
 
         <div class="d-grid">

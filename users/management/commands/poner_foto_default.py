@@ -13,7 +13,7 @@ class Command(BaseCommand):
             return
 
         for perfil in perfiles_sin_foto:
-            perfil.foto = 'perfiles/default.jpg'
+            perfil.foto = 'perfiles/default.jpeg'
             perfil.save()
             self.stdout.write(f'Foto por defecto puesta en perfil de {perfil.user.username}')
 

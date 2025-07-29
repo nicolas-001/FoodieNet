@@ -14,5 +14,6 @@ urlpatterns = [
     path('recetas/<int:pk>/favorito/', views.toggle_favorito,  name='toggle_favorito'),
     path('feed_amigos/', feed_amigos, name='feed_amigos'),
     path('calcular_calorias/<int:receta_id>/', views.calcular_calorias_macros, name='calcular_calorias'),
-    path('probar_recomendador/', views.prueba_recomendador, name='prueba_recomendador'),
+    path('probar_recomendador/', views.probar_recomendador, name='probar_recomendador'),
+    path('seleccionar_ingredientes/', views.seleccionar_ingredientes, name='seleccionar_ingredientes'),
 ]

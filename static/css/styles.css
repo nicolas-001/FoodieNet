@@ -214,3 +214,16 @@
     border-radius: 5px;
     font-size: 1rem;
   }
+  img {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+nav a {
+  text-decoration: none;
+  color: inherit;
+}
+
+nav a:hover {
+  text-decoration: underline;
+}

@@ -17,7 +17,12 @@
         <div class="col-md-6">
           <div class="card h-100 shadow-sm">
             {% if receta.imagen %}
-              <img src="{{ receta.imagen.url }}" class="card-img-top" alt="{{ receta.titulo }}" style="object-fit: cover; height: 250px;">
+              <img
+                src="{{ receta.imagen.url }}"
+                class="card-img-top"
+                alt="{{ receta.titulo }}"
+                style="object-fit: cover; height: 250px; border-radius: 8px;"
+              >
             {% endif %}
             <div class="card-body">
               <h5 class="card-title d-flex align-items-center">
@@ -30,16 +35,15 @@
                   <i class="bi bi-lock-fill ms-2" title="Receta privada" style="color: red;"></i>
                 {% endif %}
               </h5>
-              <div class="d-flex align-items-center mb-2">
-                <img src="{{ receta.autor.perfil.foto.url }}" 
-                     alt="Foto de perfil" 
-                     class="rounded-circle me-2" 
-                     style="width: 40px; height: 40px; object-fit: cover;">
+              <div class="d-flex align-items-center mb-2 gap-2">
+                <img
+                  src="{{ receta.autor.perfil.get_foto_url }}"
+                  alt="Foto de perfil de {{ receta.autor.username }}"
+                  style="width:50px; height:50px; border-radius:50%; object-fit:cover;"
+                >
                 <small class="text-muted">Por: {{ receta.autor.username }}</small>
               </div>
               <p class="card-text"><strong>Descripción:</strong> {{ receta.descripcion }}</p>
-              <p class="card-text"><strong>Ingredientes:</strong> {{ receta.ingredientes }}</p>
-              <p class="card-text"><strong>Pasos:</strong> {{ receta.pasos }}</p>
             </div>
           </div>
         </div>

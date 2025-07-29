@@ -17,6 +17,8 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from recipes.utils.traductor import traducir_ingrediente_a_ingles
 from .utils.recomendador import recomendar_recetas
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 def lista_recetas(request):
@@ -70,12 +72,15 @@ def detalle_receta(request, pk):
 
     comentarios = receta.comentarios.select_related('autor').order_by('-creado')
 
+    tags = receta.tags.all()  # <---- LÍNEA AÑADIDA
+
     return render(request, 'recipes/detalle_receta.html', {
         'receta': receta,
         'liked': liked,
         'favorited': favorited,
         'form': form,
         'comentarios': comentarios,
+        'tags': tags,   # <---- LÍNEA AÑADIDA
     })
 
 @login_required
@@ -180,7 +185,7 @@ def feed_amigos(request):
 
     return render(request, 'recipes/feed_amigos.html', {'page_obj': page_obj})
 
-import os
+import os, unicodedata
 import requests, json
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -321,21 +326,48 @@ def calcular_calorias_macros(request, receta_id):
         'carbohidratos': detalle["carbohidratos_totales"],
         'detalle_por_ingrediente': detalle["ingredientes"]
     })
-def recomendar_recetas(ingredientes):
-    # Simulación de recomendación según ingredientes
-    recetas = [
-        {"id": 1, "nombre": "Pizza", "ingredientes": ["harina", "tomate", "queso"]},
-        {"id": 2, "nombre": "Ensalada", "ingredientes": ["lechuga", "tomate", "aceite"]},
-        {"id": 3, "nombre": "Tortilla", "ingredientes": ["huevos", "patata", "aceite"]},
-    ]
-    # Filtrar recetas que contengan al menos uno de los ingredientes dados
-    return [r for r in recetas if any(i in ingredientes for i in r["ingredientes"])]
 
-def prueba_recomendador(request):
-    ingredientes = request.GET.getlist('ingredientes')
-    recomendaciones = recomendar_recetas(ingredientes)
-    if request.GET.get('format') == 'json':
-        return JsonResponse({"recomendaciones": recomendaciones})
-    else:
-        # Renderizar plantilla con recomendaciones
-        return render(request, "recipes/recomendaciones.html", {"recomendaciones": recomendaciones, "ingredientes": ingredientes})
+def normalizar_texto(texto):
+    """
+    Elimina tildes y convierte a minúsculas para comparar de forma flexible.
+    """
+    texto = texto.lower()
+    texto = unicodedata.normalize('NFD', texto)
+    texto = ''.join(c for c in texto if unicodedata.category(c) != 'Mn')
+    return texto
+
+def recomendador_por_ingredientes(ingredientes_query):
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+
+    recetas = Receta.objects.all()
+    ingredientes_list = [r.ingredientes for r in recetas]
+
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(ingredientes_list)
+
+    query_vec = vectorizer.transform([ingredientes_query])
+    similarities = cosine_similarity(query_vec, tfidf_matrix).flatten()
+
+    top_indices = similarities.argsort()[::-1][:5]
+    # convertir los índices numpy a int nativos de Python
+    top_recetas = [recetas[int(i)] for i in top_indices]
+
+    return top_recetas
+
+def probar_recomendador(request):
+    query = request.GET.get('ingredientes', '')  # ejemplo: "harina queso tomate"
+    recetas_recomendadas = []
+    if query:
+        recetas_recomendadas = recomendador_por_ingredientes(query)
+
+    return render(request, 'recipes/feed_recomendaciones.html', {
+        'recetas': recetas_recomendadas,
+        'query': query
+    })
+@require_http_methods(["GET", "POST"])
+def seleccionar_ingredientes(request):
+    if request.method == "POST":
+        ingredientes = request.POST.get('ingredientes', '')
+        return redirect(f'/probar_recomendador/?ingredientes={ingredientes}')
+    return render(request, 'recipes/seleccionar_ingredientes.html')

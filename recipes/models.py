@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import User
 from users.models import Amistad
+from taggit.managers import TaggableManager
 
 class Receta(models.Model):
     autor            = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -11,12 +12,19 @@ class Receta(models.Model):
     pasos            = models.TextField()
     imagen           = models.ImageField(upload_to='recipes/', blank=True, null=True)
     es_publica       = models.BooleanField(default=True)
+    tiempo_preparacion = models.PositiveIntegerField(null=True, blank=True, help_text="Minutos")
+    dificultad = models.CharField(
+        max_length=20,
+        choices=[('fácil', 'Fácil'), ('media', 'Media'), ('difícil', 'Difícil')],
+        blank=True
+    )
     fecha_creacion   = models.DateTimeField(auto_now_add=True)
     visitas          = models.PositiveIntegerField(default=0)   # <-- nuevo campo
     calorias = models.FloatField(null=True, blank=True)
     proteinas = models.FloatField(null=True, blank=True)
     grasas = models.FloatField(null=True, blank=True)
     carbohidratos = models.FloatField(null=True, blank=True)
+    tags = TaggableManager()
 
     def __str__(self):
         return self.titulo
@@ -26,6 +34,7 @@ class Receta(models.Model):
         if self.autor == user:
             return True
         return Amistad.objects.filter(de_usuario=self.autor, para_usuario=user, aceptada=True).exists()
+
 
 
 class Like(models.Model):

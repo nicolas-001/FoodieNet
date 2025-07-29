@@ -15,19 +15,39 @@
     <p><strong>Autor:</strong> {{ receta.autor.username }}</p>
   </div>
 
+  <p>
+    <strong>Dificultad:</strong> {{ receta.dificultad }} &nbsp; | &nbsp;
+    <strong>Tiempo:</strong> {{ receta.tiempo_preparacion }} minutos &nbsp; | &nbsp;
+    <strong>Raciones:</strong> {{ receta.raciones }}
+  </p>
+
+  {% if receta.tags.count %}
+    <p>
+      <strong>Tags:</strong>
+      {% for tag in receta.tags.all %}
+        <span style="background:#eee; padding:2px 6px; margin-right:4px; border-radius:4px; font-size:0.9em;">
+          {{ tag.name }}
+        </span>
+      {% endfor %}
+    </p>
+  {% endif %}
+
   <p><strong>Descripción:</strong> {{ receta.descripcion }}</p>
   <p><strong>Ingredientes:</strong> {{ receta.ingredientes }}</p>
   <p><strong>Pasos:</strong> {{ receta.pasos }}</p>
 
   {% if receta.imagen %}
     <div style="margin:16px 0;">
-      <img src="{{ receta.imagen.url }}" alt="{{ receta.titulo }}" width="300">
+      <img
+        src="{{ receta.imagen.url }}"
+        alt="{{ receta.titulo }}"
+        width="300"
+        style="object-fit:cover; border-radius:8px;"
+      >
     </div>
   {% endif %}
 
-  <p><strong>Fecha de creación:</strong>
-     {{ receta.fecha_creacion|date:"d M Y H:i" }}
-  </p>
+  <p><strong>Fecha de creación:</strong> {{ receta.fecha_creacion|date:"d M Y H:i" }}</p>
 
   {% if user.is_authenticated and user == receta.autor %}
     <p><a href="{% url 'editar_receta' receta.pk %}">✏️ Editar receta</a></p>
@@ -57,7 +77,6 @@
     </p>
   {% endif %}
 
-  <!-- BOTÓN PARA CALCULAR CALORÍAS Y MACROS -->
   <hr class="my-6">
 
   <button id="btnCalcularMacros" class="btn btn-primary" style="padding:8px 16px; font-size:1em; cursor:pointer;">
@@ -79,9 +98,7 @@
     </form>
   {% else %}
     <p>
-      <a href="{% url 'authentication:login' %}?next={% url 'detalle_receta' receta.pk %}">
-        Inicia sesión
-      </a> para dejar un comentario.
+      <a href="{% url 'authentication:login' %}?next={% url 'detalle_receta' receta.pk %}">Inicia sesión</a> para dejar un comentario.
     </p>
   {% endif %}
 

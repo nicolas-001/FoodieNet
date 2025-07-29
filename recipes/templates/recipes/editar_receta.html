@@ -8,15 +8,16 @@
     <form method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 15px;">
         {% csrf_token %}
         
-        {# Renderizamos los campos uno a uno con estilos bonitos #}
         {% for field in form %}
-          <div style="display: flex; flex-direction: column;">
-            <label style="margin-bottom: 5px; font-weight: bold;">{{ field.label_tag }}</label>
-            {{ field }}
-            {% if field.errors %}
-              <span style="color: red; font-size: 0.9em;">{{ field.errors|striptags }}</span>
-            {% endif %}
-          </div>
+          {% if field.name != "calorias" and field.name != "proteinas" and field.name != "grasas" and field.name != "carbohidratos" %}
+            <div style="display: flex; flex-direction: column;">
+              <label style="margin-bottom: 5px; font-weight: bold;">{{ field.label_tag }}</label>
+              {{ field }}
+              {% if field.errors %}
+                <span style="color: red; font-size: 0.9em;">{{ field.errors|striptags }}</span>
+              {% endif %}
+            </div>
+          {% endif %}
         {% endfor %}
 
         <div style="display: flex; justify-content: space-between; margin-top: 20px;">

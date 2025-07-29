@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Introduce ingredientes para recomendaciones</h2>
+<form method="post">
+    {% csrf_token %}
+    <input type="text" name="ingredientes" placeholder="Ejemplo: harina queso tomate" required>
+    <button type="submit">Buscar recetas</button>
+</form>
+{% endblock %}
