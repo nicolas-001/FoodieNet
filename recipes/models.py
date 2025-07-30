@@ -4,6 +4,33 @@ from django.contrib.auth.models import User
 from users.models import Amistad
 from taggit.managers import TaggableManager
 
+TIPOS_COCINA = [
+    ("italiana", "Italiana"),
+    ("mexicana", "Mexicana"),
+    ("asiatica", "Asiática"),
+    ("china", "China"),
+    ("japonesa", "Japonesa"),
+    ("india", "India"),
+    ("tailandesa", "Tailandesa"),
+    ("coreana", "Coreana"),
+    ("española", "Española"),
+    ("francesa", "Francesa"),
+    ("griega", "Griega"),
+    ("alemana", "Alemana"),
+    ("americana", "Americana"),
+    ("marroqui", "Marroquí"),
+    ("libanesa", "Libanesa"),
+    ("peruana", "Peruana"),
+    ("argentina", "Argentina"),
+    ("brasilena", "Brasileña"),
+    ("vegana", "Vegana"),
+    ("vegetariana", "Vegetariana"),
+    ("sin_gluten", "Sin gluten"),
+    ("rapida", "Rápida"),
+    ("fusion", "Fusión"),
+    ("otra", "Otra"),
+]
+
 class Receta(models.Model):
     autor            = models.ForeignKey(User, on_delete=models.CASCADE)
     titulo           = models.CharField(max_length=255)
@@ -25,6 +52,7 @@ class Receta(models.Model):
     grasas = models.FloatField(null=True, blank=True)
     carbohidratos = models.FloatField(null=True, blank=True)
     tags = TaggableManager()
+    tipo_cocina = models.CharField(max_length=100, choices=TIPOS_COCINA)
 
     def __str__(self):
         return self.titulo

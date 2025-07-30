@@ -19,6 +19,12 @@ from recipes.utils.traductor import traducir_ingrediente_a_ingles
 from .utils.recomendador import recomendar_recetas
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import pandas as pd
+from ml_models.utils import construir_dataframe_recetas
+from ml_models.contenido import ContentBasedRecommender
+from django.shortcuts import render
+from .helpers import get_recetas_dataframe, limpiar_ingredientes
+
 
 
 def lista_recetas(request):
@@ -371,3 +377,72 @@ def seleccionar_ingredientes(request):
         ingredientes = request.POST.get('ingredientes', '')
         return redirect(f'/probar_recomendador/?ingredientes={ingredientes}')
     return render(request, 'recipes/seleccionar_ingredientes.html')
+
+def construir_dataframe_recetas_con_ingredientes():
+    recetas = Receta.objects.all().prefetch_related('tags')
+    data = []
+
+    for receta in recetas:
+        ingredientes_limpios = limpiar_ingredientes(receta.ingredientes)  # tu función de limpieza
+        ingredientes_text = ' '.join(ingredientes_limpios)
+
+        tags = [tag.name for tag in receta.tags.all()]
+
+        data.append({
+            'id': receta.id,
+            'titulo': receta.titulo,
+            'tags': tags,
+            'ingredientes': ingredientes_limpios,
+            'ingredientes_text': ingredientes_text,
+            'calorias': receta.calorias or 0,
+            'proteinas': receta.proteinas or 0,
+            'grasas': receta.grasas or 0,
+            'carbohidratos': receta.carbohidratos or 0,
+        })
+
+    return pd.DataFrame(data)
+def get_recetas_dataframe():
+    qs = Receta.objects.all().values(
+        'id', 'titulo', 'tags', 'calorias', 'proteinas', 'grasas', 'carbohidratos'
+    )
+    df = pd.DataFrame.from_records(qs)
+
+    # Asegúrate que 'tags' es una lista de strings, ajusta según cómo almacenas las etiquetas
+    df['tags'] = df['tags'].apply(lambda x: x if isinstance(x, list) else [])
+
+    return df
+
+def vista_recomendar_recetas(request, receta_id):
+    df = construir_dataframe_recetas_con_ingredientes()
+
+    recomendador = ContentBasedRecommender(df)
+    recomendador.preprocess()
+    recomendaciones = recomendador.recomendar_similares(receta_id, top_n=5)
+
+    ids_recomendados = recomendaciones['id'].tolist()
+    recetas_recomendadas = list(Receta.objects.filter(id__in=ids_recomendados))
+    recetas_recomendadas.sort(key=lambda x: ids_recomendados.index(x.id))
+
+    # Igual que antes, manejar likes y favoritos
+    user = request.user
+    likes_usuario = set()
+    favoritos_usuario = set()
+
+    if user.is_authenticated:
+        likes_usuario = set(
+            Like.objects.filter(user=user, receta__in=recetas_recomendadas)
+            .values_list('receta_id', flat=True)
+        )
+        favoritos_usuario = set(
+            Favorito.objects.filter(user=user, receta__in=recetas_recomendadas)
+            .values_list('receta_id', flat=True)
+        )
+
+    context = {
+        "receta_base": Receta.objects.get(id=receta_id),
+        "recetas_recomendadas": recetas_recomendadas,
+        "likes_usuario": likes_usuario,
+        "favoritos_usuario": favoritos_usuario,
+    }
+
+    return render(request, "recipes/recomendaciones.html", context)

@@ -2,22 +2,66 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <title>Recomendaciones de Recetas</title>
+    <title>Recetas recomendadas</title>
 </head>
 <body>
-    <h1>Recetas recomendadas según: {{ ingredientes|join:", " }}</h1>
-    {% if recomendaciones %}
+    <h1>Recetas recomendadas</h1>
+
+        {% if recetas_recomendadas %}
         <ul>
-        {% for receta in recomendaciones %}
-            <li>
-                <strong>{{ receta.nombre }}</strong><br/>
-                Ingredientes: {{ receta.ingredientes|join:", " }}<br/>
-                {{ receta.descripcion }}...
-            </li>
-        {% endfor %}
+            {% for receta in recetas_recomendadas %}
+                <li style="margin-bottom: 24px;">
+                    <a href="{% url 'detalle_receta' receta.id %}">
+                        <h2>{{ receta.titulo }}</h2>
+                    </a>
+
+                    {% if receta.imagen %}
+                        <img src="{{ receta.imagen.url }}" alt="Imagen de {{ receta.titulo }}" width="200">
+                    {% endif %}
+
+                    <p><strong>Tiempo de preparación:</strong> {{ receta.tiempo_preparacion }} minutos</p>
+                    <p><strong>Dificultad:</strong> {{ receta.dificultad }}</p>
+                    <p><strong>Etiquetas:</strong> {{ receta.tags.all|join:", " }}</p>
+
+                    {% if user.is_authenticated %}
+                        <form method="post" action="{% url 'toggle_like' receta.pk %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" style="background:none; border:none; cursor:pointer; font-size:1.2em;">
+                                {% if receta.id in likes_usuario %}
+                                    ❤️
+                                {% else %}
+                                    🤍
+                                {% endif %}
+                                {{ receta.like_set.count }}
+                            </button>
+                        </form>
+
+                        <form method="post" action="{% url 'toggle_favorito' receta.pk %}" style="display:inline; margin-left:10px;">
+                            {% csrf_token %}
+                            <button type="submit" style="background:none; border:none; cursor:pointer; font-size:1.2em;">
+                                {% if receta.id in favoritos_usuario %}
+                                    ★
+                                {% else %}
+                                    ☆
+                                {% endif %}
+                                {{ receta.favorito_set.count }}
+                            </button>
+                        </form>
+                    {% else %}
+                        <p>
+                            <a href="{% url 'authentication:login' %}?next={% url 'recomendaciones' receta_base.id %}">
+                                Inicia sesión
+                            </a> para dar like o favorito.
+                        </p>
+                    {% endif %}
+                </li>
+            {% endfor %}
         </ul>
     {% else %}
-        <p>No se encontraron recetas con esos ingredientes.</p>
+        <p>No se encontraron recetas recomendadas.</p>
     {% endif %}
+
+
+    <a href="{% url 'lista_recetas' %}">Volver al inicio</a>
 </body>
 </html>
