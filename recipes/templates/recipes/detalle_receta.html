@@ -56,10 +56,11 @@
   <hr>
 
   {% if user.is_authenticated %}
-    <form method="post" action="{% url 'toggle_like' receta.pk %}" style="display:inline;">
+    <form id="form-like" method="post" action="{% url 'toggle_like' receta.pk %}" style="display:inline;">
       {% csrf_token %}
-      <button type="submit" style="background:none; border:none; cursor:pointer; font-size:1.2em;">
-        {% if liked %}❤️{% else %}🤍{% endif %} {{ receta.total_likes }}
+      <button type="submit" id="btn-like" style="background:none; border:none; cursor:pointer; font-size:1.2em;">
+        <span id="like-icon">{% if liked %}❤️{% else %}🤍{% endif %}</span>
+        <span id="like-count">{{ receta.total_likes }}</span>
       </button>
     </form>
 
@@ -71,11 +72,12 @@
     </form>
   {% else %}
     <p>
-      <a href="{% url 'authentication:login' %}?next={% url 'detalle_receta' receta.pk %}">
-        Inicia sesión
-      </a> para dar like o favorito.
+      <a href="{% url 'authentication:login' %}?next={% url 'detalle_receta' receta.pk %}">Inicia sesión</a>
+      para dar like o favorito.
     </p>
   {% endif %}
+
+  <div id="recomendacionesDinamicas" style="margin-top:24px;"></div>
 
   <hr class="my-6">
 
@@ -120,6 +122,7 @@
   <p><a href="{% url 'lista_recetas' %}">← Volver a la lista de recetas</a></p>
 
   <script>
+    // Calcular macros
     document.getElementById("btnCalcularMacros").addEventListener("click", function() {
       const resultadosDiv = document.getElementById("resultadosMacros");
       resultadosDiv.innerText = "Calculando... ⏳";
@@ -166,5 +169,67 @@
           resultadosDiv.innerText = "❌ " + error.message;
         });
     });
+
+    // Like + recomendaciones dinámicas
+    document.getElementById("form-like").addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      const form = event.target;
+      const recetaId = "{{ receta.id }}";
+      const icon = document.getElementById("like-icon");
+      const count = document.getElementById("like-count");
+
+      fetch(form.action, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": form.querySelector('[name=csrfmiddlewaretoken]').value,
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        credentials: 'include'
+      })
+      .then(response => {
+        if (response.redirected) {
+          window.location.href = response.url;
+          return;
+        }
+        if (!response.ok) throw new Error("Error al dar like");
+        return response.json();
+      })
+      .then(data => {
+        if (icon && count) {
+          icon.textContent = data.liked ? "❤️" : "🤍";
+          count.textContent = data.total_likes;
+        } else {
+          console.warn("Elementos like no encontrados para actualizar");
+        }
+
+        return fetch(`/recomendaciones-dinamicas/${recetaId}/`);
+      })
+      .then(response => response.json())
+      .then(data => {
+        const contenedor = document.getElementById("recomendacionesDinamicas");
+contenedor.innerHTML = "<h3>🎯 Recomendaciones basadas en esta receta:</h3><ul style='list-style:none; padding-left:0;'>";
+data.recomendaciones.forEach(r => {
+  contenedor.innerHTML += `
+    <li style="margin-bottom: 12px;">
+      <a href="${r.url}" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
+        <img src="${r.imagen_url}" alt="${r.titulo}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
+        <div>
+          <div style="font-weight:bold; color:#333;">${r.titulo}</div>
+          <div style="font-size: 0.9em; color: #666;">👤 ${r.autor_username} &nbsp; 📅 ${r.fecha_creacion}</div>
+        </div>
+      </a>
+    </li>
+  `;
+});
+contenedor.innerHTML += "</ul>";
+
+      })
+      .catch(error => {
+        console.error(error);
+        alert("Hubo un error al procesar el like o las recomendaciones.");
+      });
+    });
   </script>
 {% endblock %}
+

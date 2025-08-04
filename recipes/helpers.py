@@ -27,7 +27,7 @@ def get_recetas_dataframe():
             'proteinas': receta.proteinas,
             'grasas': receta.grasas,
             'carbohidratos': receta.carbohidratos,
-            # No incluimos tipo_cocina
+            'tiempo_preparacion': receta.tiempo_preparacion if receta.tiempo_preparacion is not None else 0,
         })
 
     df = pd.DataFrame(data)

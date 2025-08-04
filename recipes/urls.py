@@ -18,4 +18,5 @@ urlpatterns = [
     path('probar_recomendador/', views.probar_recomendador, name='probar_recomendador'),
     path('seleccionar_ingredientes/', views.seleccionar_ingredientes, name='seleccionar_ingredientes'),
     path('recomendar/<int:receta_id>/', vista_recomendar_recetas, name='recomendar_recetas'),
+    path('recomendaciones-dinamicas/<int:receta_id>/', views.recomendaciones_dinamicas, name='recomendaciones_dinamicas'),
 ]

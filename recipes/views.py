@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.generic import UpdateView
 from django.conf import settings
 from django.views.decorators.http import require_GET
-
+from django.utils.dateformat import DateFormat
 from .models import Receta, Like, Favorito, Comentario
 from .forms import RecetaForm, ComentarioForm
 from users.models import Amistad
@@ -134,19 +134,26 @@ def borrar_receta(request, receta_id):
     receta.delete()
     return redirect('lista_recetas')
 
-
 @login_required
 def toggle_like(request, pk):
-    """
-    Dar o quitar like a una receta.
-    """
     receta = get_object_or_404(Receta, pk=pk)
     like, created = Like.objects.get_or_create(user=request.user, receta=receta)
+
     if not created:
         like.delete()
+
+    # Cuenta total de likes actualizada
+    total_likes = receta.likes.count()
+
+    # Si es una petición AJAX, devolvemos JSON
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({
+            'liked': created,
+            'total_likes': total_likes
+        })
+
+    # Si no es AJAX, redirige como siempre
     return redirect('detalle_receta', pk=pk)
-
-
 @login_required
 def toggle_favorito(request, pk):
     """
@@ -378,29 +385,39 @@ def seleccionar_ingredientes(request):
         return redirect(f'/probar_recomendador/?ingredientes={ingredientes}')
     return render(request, 'recipes/seleccionar_ingredientes.html')
 
+def limpiar_tiempo_preparacion(valor):
+    """Extrae el primer número entero del valor (por ejemplo '60 minutos' → 60)."""
+    if pd.isna(valor):
+        return None
+    if isinstance(valor, (int, float)):
+        return valor
+    match = re.search(r'\d+', str(valor))
+    if match:
+        return int(match.group())
+    return None
+
 def construir_dataframe_recetas_con_ingredientes():
     recetas = Receta.objects.all().prefetch_related('tags')
+    
     data = []
-
     for receta in recetas:
-        ingredientes_limpios = limpiar_ingredientes(receta.ingredientes)  # tu función de limpieza
-        ingredientes_text = ' '.join(ingredientes_limpios)
-
-        tags = [tag.name for tag in receta.tags.all()]
+        ingredientes_texto = receta.ingredientes if isinstance(receta.ingredientes, str) else ""
+        tags = list(receta.tags.names()) if receta.tags else []
 
         data.append({
             'id': receta.id,
             'titulo': receta.titulo,
+            'ingredientes_text': ingredientes_texto,
             'tags': tags,
-            'ingredientes': ingredientes_limpios,
-            'ingredientes_text': ingredientes_text,
-            'calorias': receta.calorias or 0,
-            'proteinas': receta.proteinas or 0,
-            'grasas': receta.grasas or 0,
-            'carbohidratos': receta.carbohidratos or 0,
+            'calorias': receta.calorias,
+            'proteinas': receta.proteinas,
+            'grasas': receta.grasas,
+            'carbohidratos': receta.carbohidratos,
+            'tiempo_preparacion': limpiar_tiempo_preparacion(receta.tiempo_preparacion),
         })
 
-    return pd.DataFrame(data)
+    df = pd.DataFrame(data)
+    return df
 def get_recetas_dataframe():
     qs = Receta.objects.all().values(
         'id', 'titulo', 'tags', 'calorias', 'proteinas', 'grasas', 'carbohidratos'
@@ -446,3 +463,29 @@ def vista_recomendar_recetas(request, receta_id):
     }
 
     return render(request, "recipes/recomendaciones.html", context)
+
+def recomendaciones_dinamicas(request, receta_id):
+    df = construir_dataframe_recetas_con_ingredientes()
+    recomendador = ContentBasedRecommender(df)
+    recomendador.preprocess()
+
+    recomendaciones = recomendador.recomendar_similares(receta_id, top_n=3)
+    ids_recomendados = recomendaciones['id'].tolist()
+
+    recetas_queryset = Receta.objects.filter(id__in=ids_recomendados)
+    recetas_dict = {r.id: r for r in recetas_queryset}  # Para mantener el orden del DataFrame
+
+    data = []
+    for rec_id in ids_recomendados:
+        receta = recetas_dict.get(rec_id)
+        if receta:
+            data.append({
+                'id': receta.id,
+                'titulo': receta.titulo,
+                'imagen_url': receta.imagen.url if receta.imagen else '',
+                'url': receta.get_absolute_url() if hasattr(receta, 'get_absolute_url') else f"/recetas/{receta.id}/",
+                'autor_username': receta.autor.username,
+                'fecha_creacion': DateFormat(receta.fecha_creacion).format("d M Y"),
+            })
+
+    return JsonResponse({'recomendaciones': data})
