@@ -5,7 +5,7 @@ from django.db.models import F, Count, Q
 from django.contrib.auth.decorators import login_required
 from django.views.generic import UpdateView
 from django.conf import settings
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 from django.utils.dateformat import DateFormat
 from .models import Receta, Like, Favorito, Comentario
 from .forms import RecetaForm, ComentarioForm
@@ -155,16 +155,27 @@ def toggle_like(request, pk):
     # Si no es AJAX, redirige como siempre
     return redirect('detalle_receta', pk=pk)
 @login_required
-def toggle_favorito(request, pk):
-    """
-    Añadir o quitar una receta de favoritos.
-    """
-    receta = get_object_or_404(Receta, pk=pk)
-    fav, created = Favorito.objects.get_or_create(user=request.user, receta=receta)
-    if not created:
-        fav.delete()
-    return redirect('detalle_receta', pk=pk)
+@require_POST
 
+def toggle_favorito(request, pk):
+    receta = get_object_or_404(Receta, pk=pk)
+    user = request.user
+
+    favorito, creado = Favorito.objects.get_or_create(user=user, receta=receta)
+    if not creado:
+        favorito.delete()
+        status = "removed"
+    else:
+        status = "added"
+
+    # Contar favoritos actualizados
+    total_favoritos = Favorito.objects.filter(receta=receta).count()
+
+    return JsonResponse({
+        "favorited": status == "added",
+        "status": status,
+        "total_favoritos": total_favoritos,
+    })
 @login_required
 def feed_amigos(request):
     if not request.user.is_authenticated:

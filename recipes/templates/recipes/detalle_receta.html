@@ -64,12 +64,16 @@
       </button>
     </form>
 
-    <form method="post" action="{% url 'toggle_favorito' receta.pk %}" style="display:inline; margin-left:16px;">
-      {% csrf_token %}
-      <button type="submit" style="background:none; border:none; cursor:pointer; font-size:1.2em;">
-        {% if favorited %}★{% else %}☆{% endif %} {{ receta.total_favs }}
-      </button>
-    </form>
+    <form id="form-favorito" method="post" action="{% url 'toggle_favorito' receta.pk %}" style="display:inline;">
+  {% csrf_token %}
+  <button type="submit" id="btn-favorito" style="background:none; border:none; cursor:pointer; font-size:1.2em;">
+    {% if user.is_authenticated and favorited %}
+      ★ <span id="fav-count">{{ receta.favorito_set.count }}</span>
+    {% else %}
+      ☆ <span id="fav-count">{{ receta.favorito_set.count }}</span>
+    {% endif %}
+  </button>
+</form>
   {% else %}
     <p>
       <a href="{% url 'authentication:login' %}?next={% url 'detalle_receta' receta.pk %}">Inicia sesión</a>
@@ -122,6 +126,22 @@
   <p><a href="{% url 'lista_recetas' %}">← Volver a la lista de recetas</a></p>
 
   <script>
+    // Función para obtener cookie CSRF
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.startsWith(name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
     // Calcular macros
     document.getElementById("btnCalcularMacros").addEventListener("click", function() {
       const resultadosDiv = document.getElementById("resultadosMacros");
@@ -208,28 +228,49 @@
       .then(response => response.json())
       .then(data => {
         const contenedor = document.getElementById("recomendacionesDinamicas");
-contenedor.innerHTML = "<h3>🎯 Recomendaciones basadas en esta receta:</h3><ul style='list-style:none; padding-left:0;'>";
-data.recomendaciones.forEach(r => {
-  contenedor.innerHTML += `
-    <li style="margin-bottom: 12px;">
-      <a href="${r.url}" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
-        <img src="${r.imagen_url}" alt="${r.titulo}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
-        <div>
-          <div style="font-weight:bold; color:#333;">${r.titulo}</div>
-          <div style="font-size: 0.9em; color: #666;">👤 ${r.autor_username} &nbsp; 📅 ${r.fecha_creacion}</div>
-        </div>
-      </a>
-    </li>
-  `;
-});
-contenedor.innerHTML += "</ul>";
-
+        contenedor.innerHTML = "<h3>🎯 Recomendaciones basadas en esta receta:</h3><ul style='list-style:none; padding-left:0;'>";
+        data.recetas.forEach(rec => {
+          contenedor.innerHTML += `<li><a href="/recetas/${rec.id}/">${rec.titulo}</a></li>`;
+        });
+        contenedor.innerHTML += "</ul>";
       })
-      .catch(error => {
-        console.error(error);
-        alert("Hubo un error al procesar el like o las recomendaciones.");
+      .catch(err => {
+        console.error(err);
       });
     });
+
+    // Favorito toggle AJAX
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("form-favorito");
+
+  if (form) {
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const btn = document.getElementById("btn-favorito");
+      const url = form.action;
+      const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+
+      fetch(url, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrfToken,
+          "Accept": "application/json",
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          console.log("Favorito:", data);
+          // Actualiza el contenido del botón
+          btn.innerHTML = (data.favorited ? "★ " : "☆ ") + `<span id="fav-count">${data.total_favoritos}</span>`;
+        })
+        .catch((error) => {
+          console.error("Error al actualizar favorito:", error);
+        });
+    });
+  }
+});
+
   </script>
 {% endblock %}
 
