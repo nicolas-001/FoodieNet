@@ -1,6 +1,41 @@
 {% extends "base.html" %}
 
 {% block content %}
+
+
+{% if recomendaciones %}
+  <section class="recomendaciones my-5">
+    <div class="p-4 rounded-4 shadow bg-light border border-2 border-primary-subtle">
+      <h2 class="mb-4 text-primary">🎯 Recomendaciones para ti</h2>
+      <div class="row g-4">
+        {% for receta in recomendaciones %}
+          <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+              {% if receta.imagen %}
+               <img
+  src="{{ receta.imagen.url }}"
+  class="card-img-top"
+  alt="{{ receta.titulo }}"
+  style="object-fit: cover; height: 250px; border-radius: 8px;"
+>
+              {% endif %}
+              <div class="card-body">
+                <h5 class="card-title">
+                  <a href="{% url 'detalle_receta' receta.pk %}" class="text-decoration-none text-dark">
+                    {{ receta.titulo }}
+                  </a>
+                </h5>
+                <p class="text-muted small">Basado en tus últimos likes</p>
+                <p class="card-text">{{ receta.descripcion|truncatewords:20 }}</p>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endif %}
+
 <div class="container my-4">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Lista de Recetas</h1>
@@ -10,6 +45,7 @@
       </a>
     {% endif %}
   </div>
+
 
   {% if page_obj %}
     <div class="row g-4">
@@ -106,3 +142,13 @@
   {% endif %}
 </div>
 {% endblock %}
+
+<script>
+  const myCarousel = document.querySelector('#carouselRecomendaciones');
+  const carousel = new bootstrap.Carousel(myCarousel, {
+    interval: 6000,  // cambia cada 6 segundos
+    ride: 'carousel',
+    pause: false,
+    wrap: true
+  });
+</script>

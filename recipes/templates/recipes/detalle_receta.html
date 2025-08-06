@@ -228,14 +228,26 @@
       .then(response => response.json())
       .then(data => {
         const contenedor = document.getElementById("recomendacionesDinamicas");
-        contenedor.innerHTML = "<h3>🎯 Recomendaciones basadas en esta receta:</h3><ul style='list-style:none; padding-left:0;'>";
-        data.recetas.forEach(rec => {
-          contenedor.innerHTML += `<li><a href="/recetas/${rec.id}/">${rec.titulo}</a></li>`;
-        });
-        contenedor.innerHTML += "</ul>";
+contenedor.innerHTML = "<h3>🎯 Recomendaciones basadas en esta receta:</h3><ul style='list-style:none; padding-left:0;'>";
+data.recomendaciones.forEach(r => {
+  contenedor.innerHTML += `
+    <li style="margin-bottom: 12px;">
+      <a href="${r.url}" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
+        <img src="${r.imagen_url}" alt="${r.titulo}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
+        <div>
+          <div style="font-weight:bold; color:#333;">${r.titulo}</div>
+          <div style="font-size: 0.9em; color: #666;">👤 ${r.autor_username} &nbsp; 📅 ${r.fecha_creacion}</div>
+        </div>
+      </a>
+    </li>
+  `;
+});
+contenedor.innerHTML += "</ul>";
+
       })
-      .catch(err => {
-        console.error(err);
+      .catch(error => {
+        console.error(error);
+        alert("Hubo un error al procesar el like o las recomendaciones.");
       });
     });
 

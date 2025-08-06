@@ -25,26 +25,45 @@ from ml_models.contenido import ContentBasedRecommender
 from django.shortcuts import render
 from .helpers import get_recetas_dataframe, limpiar_ingredientes
 
+def obtener_recetas_base_para_usuario(usuario, top_n=2):
+    liked_recetas = Receta.objects.filter(likes__user=usuario).order_by('-likes__creado')[:top_n]
+    if liked_recetas.exists():
+        return liked_recetas
+    propias = Receta.objects.filter(autor=usuario).order_by('-fecha_creacion')[:top_n]
+    if propias.exists():
+        return propias
+    return []
+
 
 
 def lista_recetas(request):
     usuario = request.user
+    recomendaciones = []
+
     if usuario.is_authenticated:
+        # Obtener recomendaciones generales (usando ML con favoritos y likes)
+        recomendaciones = obtener_recomendaciones_generales(usuario)
+
+        # IDs de recetas recomendadas para excluirlas de la lista general
+        recomendaciones_ids = [r.id for r in recomendaciones]
+
         amigos = usuario.perfil.obtener_amigos()
         recetas_qs = Receta.objects.filter(
-            Q(es_publica=True) | 
-            Q(es_publica=False, autor__in=amigos)
+            (Q(es_publica=True) | Q(es_publica=False, autor__in=amigos)) &
+            ~Q(id__in=recomendaciones_ids)  # Excluimos las recomendaciones
         ).select_related('autor__perfil').distinct().order_by('-fecha_creacion')
+
     else:
+        recomendaciones = []
         recetas_qs = Receta.objects.filter(es_publica=True).select_related('autor__perfil').order_by('-fecha_creacion')
 
-    # Paginación: 10 recetas por página
     paginator = Paginator(recetas_qs, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'recipes/lista_recetas.html', {
         'page_obj': page_obj,
+        'recomendaciones': recomendaciones,
     })
 def detalle_receta(request, pk):
     receta = get_object_or_404(Receta.objects.select_related('autor__perfil'), pk=pk)
@@ -500,3 +519,58 @@ def recomendaciones_dinamicas(request, receta_id):
             })
 
     return JsonResponse({'recomendaciones': data})
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from .models import Receta, Like, Favorito
+
+def obtener_recomendaciones_generales(user):
+    # 1. Obtener IDs de recetas que el usuario ha marcado con like y favorito
+    recetas_liked_ids = Like.objects.filter(user=user).values_list('receta_id', flat=True)
+    recetas_fav_ids = Favorito.objects.filter(user=user).values_list('receta_id', flat=True)
+    recetas_ids = list(set(recetas_liked_ids) | set(recetas_fav_ids))
+
+    if not recetas_ids:
+        # Si no tiene likes ni favoritos, devolvemos las recetas más populares o recientes
+        return Receta.objects.filter(es_publica=True).order_by('-visitas')[:3]
+
+    # 2. Obtener recetas del usuario para formar perfil
+    recetas_usuario = Receta.objects.filter(id__in=recetas_ids)
+
+    # 3. Crear corpus de texto para ML (tags + ingredientes)
+    # Concatenamos tags y ingredientes para cada receta
+    def get_corpus(receta):
+        tags = " ".join(tag.name for tag in receta.tags.all())
+        ingredientes = receta.ingredientes or ""
+        return f"{tags} {ingredientes}"
+
+    perfil_texto = " ".join(get_corpus(r) for r in recetas_usuario)
+
+    # 4. Obtener todas las recetas públicas (menos las que el usuario ya tiene liked/favorito)
+    recetas_publicas = Receta.objects.filter(es_publica=True).exclude(id__in=recetas_ids)
+
+    if not recetas_publicas.exists():
+        return []
+
+    corpus_recetas = [get_corpus(r) for r in recetas_publicas]
+
+    # 5. Vectorizamos perfil y corpus con Tfidf
+    vectorizer = TfidfVectorizer(stop_words=None)
+    vectores = vectorizer.fit_transform([perfil_texto] + corpus_recetas)
+
+    perfil_vector = vectores[0]
+    recetas_vectors = vectores[1:]
+
+    # 6. Calcular similitud coseno
+    similitudes = cosine_similarity(perfil_vector, recetas_vectors).flatten()
+
+    # 7. Empaquetar resultados con IDs y similitud
+    recetas_similares = list(zip(recetas_publicas, similitudes))
+
+    # 8. Ordenar por similitud descendente
+    recetas_similares.sort(key=lambda x: x[1], reverse=True)
+
+    # 9. Devolver solo las top 3 recomendaciones
+    recomendaciones = [r[0] for r in recetas_similares[:3]]
+
+    return recomendaciones
