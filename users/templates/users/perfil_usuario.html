@@ -28,17 +28,17 @@
           </span>
         {% elif request.user != otro and request.user.is_authenticated %}
           <button id="btn-enviar-solicitud"
+                  type="button"
                   class="btn btn-primary btn-sm mt-2"
                   data-username="{{ otro.username }}"
-                  data-url="{% url 'users:enviar_solicitud' otro.username %}"
-                  onclick="window.__inlineClick && window.__inlineClick(event)">
+                  data-url="{% url 'users:enviar_solicitud' otro.username %}">
             <i class="bi bi-person-plus-fill"></i> Enviar solicitud de amistad
           </button>
         {% endif %}
       </div>
 
       <div id="recomendaciones_after_like" style="margin-top: 12px;"></div>
-      <div id="debug-log" class="mt-3 p-2 bg-light border rounded small" style="white-space:pre-wrap; max-height:220px; overflow:auto;"></div>
+      <div id="debug-log" class="mt-3 p-2 bg-light border rounded small" style="display: none;"; max-height:220px; overflow:auto;"></div>
 
       <!-- SCRIPT INLINE -->
       <script>
@@ -74,13 +74,12 @@
         async function enviarSolicitud(url, btn){
           const csrf = getCsrfToken();
           if (!url) { log('ERROR: data-url vacío'); alert('URL no configurada'); return; }
-          log('Enviando POST a: '+url);
+          log('Enviando POST a: ' + url);
 
-          if (btn){
-            btn.disabled = true;
-            btn.dataset._html = btn.innerHTML;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
-          }
+          // desactivar/estado visual
+          btn.disabled = true;
+          btn.dataset._html = btn.innerHTML;
+          btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
 
           try {
             const resp = await fetch(url, {
@@ -95,7 +94,7 @@
 
             log(`HTTP ${resp.status} redirected=${resp.redirected} url=${resp.url}`);
             const raw = await resp.text();
-            log("Body (200 chars):\n"+ raw.slice(0,200) + "\n---");
+            log("Body (200 chars):\n" + raw.slice(0,200) + "\n---");
 
             let data = null;
             try { data = JSON.parse(raw); } catch(e){}
@@ -110,11 +109,12 @@
             }
 
             if (data.status !== 'ok') {
-              log('Servidor respondió status≠ok: '+ JSON.stringify(data));
+              log('Servidor respondió status≠ok: ' + JSON.stringify(data));
               alert(data.message || 'Error al enviar solicitud');
               return;
             }
 
+            // Actualiza estado UI
             const contSol = document.getElementById('solicitud-container');
             if (contSol) {
               contSol.innerHTML = `
@@ -124,6 +124,7 @@
               `;
             }
 
+            // Recomendaciones
             const contRec = document.getElementById('recomendaciones_after_like');
             if (contRec) {
               contRec.innerHTML = '';
@@ -170,28 +171,29 @@
             log('Excepción fetch: ' + (err && err.message ? err.message : err));
             alert('Error en la conexión.');
           } finally {
-            if (btn){
-              btn.disabled = false;
-              if (btn.dataset._html) btn.innerHTML = btn.dataset._html;
-            }
+            // liberar guardas
+            delete btn.dataset.busy;
+            btn.disabled = false;
+            if (btn.dataset._html) btn.innerHTML = btn.dataset._html;
           }
         }
 
-        window.__inlineClick = function(e){
-          log('CLICK inline disparado');
-          const btn = e.currentTarget;
-          const url = btn && btn.dataset ? btn.dataset.url : null;
-          enviarSolicitud(url, btn);
-        };
-
+        // ÚNICO handler (sin onclick inline)
         document.addEventListener('click', function(e){
           const btn = e.target.closest && e.target.closest('#btn-enviar-solicitud');
-          if (btn){
-            log('CLICK capturado por delegación');
+          if (!btn) return;
+
+          // anti-doble click (guard inmediato)
+          if (btn.dataset.busy === '1' || btn.disabled) {
+            log('Ignorado: ya en curso');
             e.preventDefault();
-            enviarSolicitud(btn.dataset.url, btn);
+            return;
           }
-        });
+          btn.dataset.busy = '1';
+
+          e.preventDefault();
+          enviarSolicitud(btn.dataset.url, btn);
+        }, { passive: false });
 
         log('Script inline de perfil iniciado.');
       })();
@@ -225,24 +227,22 @@
           <div class="col-md-6 mb-3">
             <div class="card h-100 border-warning">
               {% if r.imagen %}
-                <img src="{{ r.imagen.url }}" class="card-img-top" alt="{{ r.titulo }}" style="object-fit: cover; height: 
-
-            {% endif %}
-            <div class="card-body">
-              <h5 class="card-title mb-2">
-                <a href="{% url 'detalle_receta' r.pk %}" class="text-decoration-none text-dark">{{ r.titulo }}</a>
-              </h5>
-              <span class="badge bg-warning text-dark">Privada</span>
+                <img src="{{ r.imagen.url }}" class="card-img-top" alt="{{ r.titulo }}" style="object-fit: cover; height: 200px;">
+              {% endif %}
+              <div class="card-body">
+                <h5 class="card-title mb-2">
+                  <a href="{% url 'detalle_receta' r.pk %}" class="text-decoration-none text-dark">{{ r.titulo }}</a>
+                </h5>
+                <span class="badge bg-warning text-dark">Privada</span>
+              </div>
             </div>
           </div>
-        </div>
-      {% endfor %}
-    {% endif %}
-  </div>
-{% else %}
-  <p class="text-muted">No hay recetas disponibles para mostrar.</p>
-{% endif %}
+        {% endfor %}
+      {% endif %}
+    </div>
+  {% else %}
+    <p class="text-muted">No hay recetas disponibles para mostrar.</p>
+  {% endif %}
 
 </div>
 {% endblock %}
-
