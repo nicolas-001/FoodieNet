@@ -15,22 +15,188 @@
     <div>
       <p class="mb-1"><strong>Biografía:</strong> {{ perfil_otro.biografia|default:"(sin biografía)" }}</p>
 
-      {% if es_amigo %}
-        <span class="badge bg-success">
-          <i class="bi bi-person-check-fill"></i> Amigo
-        </span>
-      {% elif solicitud_pendiente %}
-        <span class="badge bg-warning text-dark">
-          <i class="bi bi-hourglass-split"></i> Solicitud pendiente
-        </span>
-      {% elif request.user != otro and request.user.is_authenticated %}
-        <form method="post" action="{% url 'users:enviar_solicitud' otro.username %}">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-primary btn-sm mt-2">
+      <input type="hidden" id="csrf-token-input" value="{{ csrf_token }}">
+
+      <div id="solicitud-container">
+        {% if es_amigo %}
+          <span class="badge bg-success">
+            <i class="bi bi-person-check-fill"></i> Amigo
+          </span>
+        {% elif solicitud_pendiente %}
+          <span class="badge bg-warning text-dark">
+            <i class="bi bi-hourglass-split"></i> Solicitud pendiente
+          </span>
+        {% elif request.user != otro and request.user.is_authenticated %}
+          <button id="btn-enviar-solicitud"
+                  class="btn btn-primary btn-sm mt-2"
+                  data-username="{{ otro.username }}"
+                  data-url="{% url 'users:enviar_solicitud' otro.username %}"
+                  onclick="window.__inlineClick && window.__inlineClick(event)">
             <i class="bi bi-person-plus-fill"></i> Enviar solicitud de amistad
           </button>
-        </form>
-      {% endif %}
+        {% endif %}
+      </div>
+
+      <div id="recomendaciones_after_like" style="margin-top: 12px;"></div>
+      <div id="debug-log" class="mt-3 p-2 bg-light border rounded small" style="white-space:pre-wrap; max-height:220px; overflow:auto;"></div>
+
+      <!-- SCRIPT INLINE -->
+      <script>
+      (function(){
+        function log(msg){
+          const box = document.getElementById('debug-log');
+          const time = new Date().toLocaleTimeString();
+          console.log(msg);
+          if (box) { box.textContent += `[${time}] ${msg}\n`; box.scrollTop = box.scrollHeight; }
+        }
+
+        function getCookie(name) {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+              }
+            }
+          }
+          return cookieValue;
+        }
+
+        function getCsrfToken() {
+          const fromCookie = getCookie('csrftoken');
+          const fromInput = (document.getElementById('csrf-token-input') || {}).value;
+          return fromCookie || (fromInput && fromInput !== 'NOTPROVIDED' ? fromInput : null);
+        }
+
+        async function enviarSolicitud(url, btn){
+          const csrf = getCsrfToken();
+          if (!url) { log('ERROR: data-url vacío'); alert('URL no configurada'); return; }
+          log('Enviando POST a: '+url);
+
+          if (btn){
+            btn.disabled = true;
+            btn.dataset._html = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
+          }
+
+          try {
+            const resp = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': csrf || '',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+              },
+              credentials: 'same-origin'
+            });
+
+            log(`HTTP ${resp.status} redirected=${resp.redirected} url=${resp.url}`);
+            const raw = await resp.text();
+            log("Body (200 chars):\n"+ raw.slice(0,200) + "\n---");
+
+            let data = null;
+            try { data = JSON.parse(raw); } catch(e){}
+
+            if (!resp.ok || !data){
+              if (resp.redirected || (resp.url && resp.url.toLowerCase().includes('login'))) {
+                alert('Parece que no estás logueado. Inicia sesión e inténtalo de nuevo.');
+              } else {
+                alert('Respuesta inesperada del servidor. Revisa consola/log.');
+              }
+              return;
+            }
+
+            if (data.status !== 'ok') {
+              log('Servidor respondió status≠ok: '+ JSON.stringify(data));
+              alert(data.message || 'Error al enviar solicitud');
+              return;
+            }
+
+            const contSol = document.getElementById('solicitud-container');
+            if (contSol) {
+              contSol.innerHTML = `
+                <span class="badge bg-warning text-dark">
+                  <i class="bi bi-hourglass-split"></i> Solicitud pendiente
+                </span>
+              `;
+            }
+
+            const contRec = document.getElementById('recomendaciones_after_like');
+            if (contRec) {
+              contRec.innerHTML = '';
+              const recs = Array.isArray(data.recomendaciones) ? data.recomendaciones : [];
+              if (recs.length) {
+                const wrapper = document.createElement('div');
+                wrapper.classList.add('mt-3');
+                const h = document.createElement('h5');
+                h.textContent = 'Quizá también te interesen estas cuentas';
+                wrapper.appendChild(h);
+
+                const row = document.createElement('div');
+                row.className = 'd-flex gap-3 flex-wrap';
+
+                recs.forEach(u => {
+                  const card = document.createElement('div');
+                  card.className = 'd-flex align-items-center gap-2 border rounded p-2';
+                  card.style.minWidth = '220px';
+
+                  const img = document.createElement('img');
+                  img.src = u.foto_url;
+                  img.width = 48;
+                  img.height = 48;
+                  img.style.objectFit = 'cover';
+                  img.className = 'rounded-circle';
+
+                  const txt = document.createElement('div');
+                  txt.innerHTML = `<a href="${u.perfil_url}" class="fw-bold text-dark" style="text-decoration:none;">${u.username}</a>`;
+
+                  card.appendChild(img);
+                  card.appendChild(txt);
+                  row.appendChild(card);
+                });
+
+                wrapper.appendChild(row);
+                contRec.appendChild(wrapper);
+                log(`Mostradas ${recs.length} recomendaciones.`);
+              } else {
+                contRec.innerHTML = '<p class="text-muted small">No se han encontrado sugerencias por ahora.</p>';
+                log('Sin recomendaciones.');
+              }
+            }
+          } catch (err) {
+            log('Excepción fetch: ' + (err && err.message ? err.message : err));
+            alert('Error en la conexión.');
+          } finally {
+            if (btn){
+              btn.disabled = false;
+              if (btn.dataset._html) btn.innerHTML = btn.dataset._html;
+            }
+          }
+        }
+
+        window.__inlineClick = function(e){
+          log('CLICK inline disparado');
+          const btn = e.currentTarget;
+          const url = btn && btn.dataset ? btn.dataset.url : null;
+          enviarSolicitud(url, btn);
+        };
+
+        document.addEventListener('click', function(e){
+          const btn = e.target.closest && e.target.closest('#btn-enviar-solicitud');
+          if (btn){
+            log('CLICK capturado por delegación');
+            e.preventDefault();
+            enviarSolicitud(btn.dataset.url, btn);
+          }
+        });
+
+        log('Script inline de perfil iniciado.');
+      })();
+      </script>
+      <!-- FIN SCRIPT INLINE -->
     </div>
   </div>
 
@@ -57,23 +223,26 @@
       {% if es_amigo %}
         {% for r in recetas_privadas %}
           <div class="col-md-6 mb-3">
-            <div class="card h-100">
+            <div class="card h-100 border-warning">
               {% if r.imagen %}
-                <img src="{{ r.imagen.url }}" class="card-img-top" alt="{{ r.titulo }}" style="object-fit: cover; height: 200px;">
-              {% endif %}
-              <div class="card-body">
-                <h5 class="card-title mb-2">
-                  <a href="{% url 'detalle_receta' r.pk %}" class="text-decoration-none text-dark">{{ r.titulo }}</a>
-                </h5>
-                <span class="badge bg-secondary">Privada</span>
-              </div>
+                <img src="{{ r.imagen.url }}" class="card-img-top" alt="{{ r.titulo }}" style="object-fit: cover; height: 
+
+            {% endif %}
+            <div class="card-body">
+              <h5 class="card-title mb-2">
+                <a href="{% url 'detalle_receta' r.pk %}" class="text-decoration-none text-dark">{{ r.titulo }}</a>
+              </h5>
+              <span class="badge bg-warning text-dark">Privada</span>
             </div>
           </div>
-        {% endfor %}
-      {% endif %}
-    </div>
-  {% else %}
-    <p class="text-muted">No tiene recetas aún.</p>
-  {% endif %}
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+{% else %}
+  <p class="text-muted">No hay recetas disponibles para mostrar.</p>
+{% endif %}
+
 </div>
 {% endblock %}
+

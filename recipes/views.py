@@ -24,6 +24,8 @@ from ml_models.utils import construir_dataframe_recetas
 from ml_models.contenido import ContentBasedRecommender
 from django.shortcuts import render
 from .helpers import get_recetas_dataframe, limpiar_ingredientes
+import nltk
+from nltk.corpus import stopwords
 
 def obtener_recetas_base_para_usuario(usuario, top_n=2):
     liked_recetas = Receta.objects.filter(likes__user=usuario).order_by('-likes__creado')[:top_n]
@@ -524,6 +526,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from .models import Receta, Like, Favorito
 
+nltk.download('stopwords')
+
 def obtener_recomendaciones_generales(user):
     # 1. Obtener IDs de recetas que el usuario ha marcado con like y favorito
     recetas_liked_ids = Like.objects.filter(user=user).values_list('receta_id', flat=True)
@@ -536,7 +540,7 @@ def obtener_recomendaciones_generales(user):
 
     # 2. Obtener recetas del usuario para formar perfil
     recetas_usuario = Receta.objects.filter(id__in=recetas_ids)
-
+    spanish_stopwords = stopwords.words('spanish')
     # 3. Crear corpus de texto para ML (tags + ingredientes)
     # Concatenamos tags y ingredientes para cada receta
     def get_corpus(receta):
@@ -555,7 +559,7 @@ def obtener_recomendaciones_generales(user):
     corpus_recetas = [get_corpus(r) for r in recetas_publicas]
 
     # 5. Vectorizamos perfil y corpus con Tfidf
-    vectorizer = TfidfVectorizer(stop_words=None)
+    vectorizer = TfidfVectorizer(stop_words=spanish_stopwords)
     vectores = vectorizer.fit_transform([perfil_texto] + corpus_recetas)
 
     perfil_vector = vectores[0]

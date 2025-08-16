@@ -6,7 +6,10 @@ from .forms import UserEditForm,PerfilForm  # Formulario para editar usuario
 from .models import Amistad
 from django.contrib import messages
 from django.http import JsonResponse
-
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+from django.db.models import Q, Count
 
 @login_required
 def perfil(request):
@@ -209,30 +212,133 @@ def rechazar_amistad(request, solicitud_id):
         return JsonResponse({'status': 'ok', 'solicitud_id': solicitud_id})
     return JsonResponse({'status': 'error'}, status=400)
 
+try:
+    import nltk
+    from nltk.corpus import stopwords
+    # make sure downloaded in your env: nltk.download('stopwords') (once)
+    spanish_stopwords = stopwords.words('spanish')
+except Exception:
+    spanish_stopwords = None
+
+
+def obtener_usuarios_similares_ml(usuario_objetivo, usuario_actual=None, top_n=3):
+    """
+    Devuelve lista de Users (máx top_n) similares a usuario_objetivo basados en
+    su contenido (recetas: titulo, descripcion, tags, ingredientes).
+    Excluye al usuario_actual y al usuario_objetivo.
+    """
+    # 1) texto del usuario objetivo (combina todas sus recetas públicas)
+    recetas_obj = Receta.objects.filter(autor=usuario_objetivo).prefetch_related('tags')
+    texto_objetivo_parts = []
+    for r in recetas_obj:
+        tags = " ".join(t.name for t in r.tags.all())
+        ingredientes = (r.ingredientes or "")
+        titulo = (r.titulo or "")
+        descripcion = (r.descripcion or "")
+        texto_objetivo_parts.append(" ".join([titulo, descripcion, tags, ingredientes]))
+    texto_objetivo = " ".join(texto_objetivo_parts).strip()
+
+    if not texto_objetivo:
+        # si no hay contenido, devolver lista vacía (o los más populares)
+        return list(User.objects.none())
+
+    # 2) construir corpus de otros usuarios que tienen recetas
+    otros_usuarios_qs = User.objects.exclude(id=usuario_objetivo.id)
+    if usuario_actual:
+        otros_usuarios_qs = otros_usuarios_qs.exclude(id=usuario_actual.id)
+
+    # limitar a usuarios que tengan al menos 1 receta para no vectorizar todo
+    otros_usuarios_qs = otros_usuarios_qs.annotate(num_recetas=Count('receta')).filter(num_recetas__gt=0)
+
+    usuarios = []
+    corpus = []
+    for u in otros_usuarios_qs:
+        recetas_u = Receta.objects.filter(autor=u).prefetch_related('tags')
+        partes = []
+        for r in recetas_u:
+            tags = " ".join(t.name for t in r.tags.all())
+            ingredientes = (r.ingredientes or "")
+            titulo = (r.titulo or "")
+            descripcion = (r.descripcion or "")
+            partes.append(" ".join([titulo, descripcion, tags, ingredientes]))
+        texto_u = " ".join(partes).strip()
+        if texto_u:
+            usuarios.append(u)
+            corpus.append(texto_u)
+
+    if not corpus:
+        return []
+
+    # 3) Vectorizar (perfil objetivo + corpus)
+    # Si spanish_stopwords disponible, úsala; sino no filtrar stopwords
+    vectorizer = TfidfVectorizer(stop_words=spanish_stopwords)
+    try:
+        matriz = vectorizer.fit_transform([texto_objetivo] + corpus)
+    except Exception:
+        # fallback sin stopwords si algo falla
+        vectorizer = TfidfVectorizer(stop_words=None)
+        matriz = vectorizer.fit_transform([texto_objetivo] + corpus)
+
+    perfil_vec = matriz[0:1]
+    otros_vecs = matriz[1:]
+
+    # 4) calcular similitud coseno
+    sims = cosine_similarity(perfil_vec, otros_vecs).flatten()
+    # ordenar índices descendente
+    idx_sorted = np.argsort(sims)[::-1]
+    top_idx = idx_sorted[:top_n]
+
+    usuarios_similares = [usuarios[i] for i in top_idx if sims[i] > 0]
+
+    return usuarios_similares
+
+
 @login_required
 def enviar_solicitud(request, username):
+    """
+    Envía solicitud de amistad y devuelve recomendaciones ML vía JSON.
+    """
     if request.method != "POST":
-        messages.error(request, "Acción no permitida.")
-        return redirect('users:perfil_usuario', username=username)
+        return JsonResponse({'status': 'error', 'message': 'Método no permitido.'}, status=400)
 
     if username == request.user.username:
-        messages.error(request, "No puedes enviarte una solicitud a ti mismo.")
-        return redirect('users:perfil_usuario', username=username)
+        return JsonResponse({'status': 'error', 'message': 'No puedes enviarte una solicitud a ti mismo.'}, status=400)
 
     para_usuario = get_object_or_404(User, username=username)
 
+    # Evitar duplicados
     ya_existe = Amistad.objects.filter(
         (Q(de_usuario=request.user) & Q(para_usuario=para_usuario)) |
         (Q(de_usuario=para_usuario) & Q(para_usuario=request.user))
     ).exists()
 
     if ya_existe:
-        messages.warning(request, "Ya existe una solicitud o ya sois amigos.")
-    else:
-        Amistad.objects.create(de_usuario=request.user, para_usuario=para_usuario)
-        messages.success(request, "Solicitud enviada correctamente.")
+        return JsonResponse({'status': 'error', 'message': 'Ya existe una solicitud o ya sois amigos.'}, status=400)
 
-    return redirect('users:perfil_usuario', username=username)
+    # Crear la solicitud
+    Amistad.objects.create(de_usuario=request.user, para_usuario=para_usuario)
+
+    # Obtener recomendaciones ML (excluyendo usuario actual y objetivo)
+    usuarios_similares = obtener_usuarios_similares_ml(
+        para_usuario,
+        usuario_actual=request.user,
+        top_n=3
+    )
+
+    recomendaciones_data = []
+    for u in usuarios_similares:
+        recomendaciones_data.append({
+            'username': u.username,
+            'full_name': getattr(u, 'get_full_name', lambda: "")() or "",
+            'perfil_url': f"/users/{u.username}/",  # Ajusta según tus URLs reales
+            'foto_url': getattr(getattr(u, 'perfil', None), 'foto.url', '/static/perfiles/default.jpeg'),
+        })
+
+    return JsonResponse({
+        'status': 'ok',
+        'message': 'Solicitud enviada correctamente.',
+        'recomendaciones': recomendaciones_data
+    })
 
 def obtener_amigos(usuario):
     print("Buscando amigos de:", usuario.username)
@@ -251,3 +357,44 @@ def obtener_amigos(usuario):
             amigos.append(amistad.de_usuario)
     print("Amigos reales:", amigos)
     return amigos
+
+
+def obtener_usuarios_similares(usuario_objetivo, top_n=3):
+    """
+    Devuelve una lista de usuarios similares al usuario_objetivo según sus recetas.
+    """
+    # Obtener todos los usuarios menos el objetivo
+    usuarios = User.objects.exclude(id=usuario_objetivo.id)
+
+    # Crear corpus de texto con las recetas de cada usuario
+    corpus = []
+    user_index_map = []
+
+    for u in usuarios:
+        recetas = u.receta_set.all()  # Asumiendo que User → Receta con FK `autor`
+        texto = " ".join([
+            f"{r.titulo} {r.descripcion} {r.ingredientes} {' '.join(tag.name for tag in r.tags.all())}"
+            for r in recetas
+        ])
+        corpus.append(texto if texto.strip() else "")
+        user_index_map.append(u)
+
+    # Corpus del usuario objetivo
+    recetas_objetivo = usuario_objetivo.receta_set.all()
+    texto_objetivo = " ".join([
+        f"{r.titulo} {r.descripcion} {r.ingredientes} {' '.join(tag.name for tag in r.tags.all())}"
+        for r in recetas_objetivo
+    ])
+    corpus.insert(0, texto_objetivo)  # Usuario objetivo al inicio
+
+    # Vectorización TF-IDF
+    vectorizer = TfidfVectorizer(stop_words="spanish")
+    tfidf_matrix = vectorizer.fit_transform(corpus)
+
+    # Calcular similitudes
+    similitudes = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:]).flatten()
+
+    # Obtener top N usuarios más similares
+    indices_similares = similitudes.argsort()[::-1][:top_n]
+
+    return [user_index_map[i] for i in indices_similares]
