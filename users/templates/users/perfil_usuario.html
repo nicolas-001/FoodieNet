@@ -18,186 +18,338 @@
       <input type="hidden" id="csrf-token-input" value="{{ csrf_token }}">
 
       <div id="solicitud-container">
-        {% if es_amigo %}
-          <span class="badge bg-success">
-            <i class="bi bi-person-check-fill"></i> Amigo
-          </span>
-        {% elif solicitud_pendiente %}
-          <span class="badge bg-warning text-dark">
-            <i class="bi bi-hourglass-split"></i> Solicitud pendiente
-          </span>
-        {% elif request.user != otro and request.user.is_authenticated %}
-          <button id="btn-enviar-solicitud"
-                  type="button"
-                  class="btn btn-primary btn-sm mt-2"
-                  data-username="{{ otro.username }}"
-                  data-url="{% url 'users:enviar_solicitud' otro.username %}">
-            <i class="bi bi-person-plus-fill"></i> Enviar solicitud de amistad
-          </button>
-        {% endif %}
-      </div>
+  {% if es_amigo %}
+    <button id="btn-borrar-amigo"
+            type="button"
+            class="btn btn-danger btn-sm mt-2"
+            data-username="{{ otro.username }}"
+            data-url="{% url 'users:borrar_amigo' otro.username %}">
+      <i class="bi bi-person-x-fill"></i> Borrar amigo
+    </button>
+
+  {% elif solicitud_pendiente %}
+    <button id="btn-cancelar-solicitud"
+            type="button"
+            class="btn btn-secondary btn-sm mt-2"
+            data-username="{{ otro.username }}"
+            data-url="{% url 'users:cancelar_solicitud' otro.username %}">
+      <i class="bi bi-x-circle-fill"></i> Cancelar solicitud
+    </button>
+
+  {% elif request.user != otro and request.user.is_authenticated %}
+    <button id="btn-enviar-solicitud"
+            type="button"
+            class="btn btn-primary btn-sm mt-2"
+            data-username="{{ otro.username }}"
+            data-url="{% url 'users:enviar_solicitud' otro.username %}">
+      <i class="bi bi-person-plus-fill"></i> Enviar solicitud de amistad
+    </button>
+  {% endif %}
+</div>
+
 
       <div id="recomendaciones_after_like" style="margin-top: 12px;"></div>
       <div id="debug-log" class="mt-3 p-2 bg-light border rounded small" style="display: none;"; max-height:220px; overflow:auto;"></div>
 
       <!-- SCRIPT INLINE -->
-      <script>
-      (function(){
-        function log(msg){
-          const box = document.getElementById('debug-log');
-          const time = new Date().toLocaleTimeString();
-          console.log(msg);
-          if (box) { box.textContent += `[${time}] ${msg}\n`; box.scrollTop = box.scrollHeight; }
+<script>
+(function(){
+  // ===== Utilidades =====
+  function log(msg){
+    const box = document.getElementById('debug-log');
+    const time = new Date().toLocaleTimeString();
+    console.log(msg);
+    if (box) { box.textContent += `[${time}] ${msg}\n`; box.scrollTop = box.scrollHeight; }
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
         }
+      }
+    }
+    return cookieValue;
+  }
 
-        function getCookie(name) {
-          let cookieValue = null;
-          if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-              const cookie = cookies[i].trim();
-              if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-              }
-            }
-          }
-          return cookieValue;
+  function getCsrfToken() {
+    const fromCookie = getCookie('csrftoken');
+    const fromInput = (document.getElementById('csrf-token-input') || {}).value;
+    return fromCookie || (fromInput && fromInput !== 'NOTPROVIDED' ? fromInput : null);
+  }
+
+  // Username del perfil (fallback si el botón no lo trae)
+  function getPerfilUsername(){
+    // 1) Intenta leer de un botón visible
+    const btn = document.querySelector('#btn-enviar-solicitud, #btn-cancelar-solicitud');
+    if (btn && btn.dataset && btn.dataset.username) return btn.dataset.username;
+    // 2) Parsear de la URL: /users/<username>/
+    const m = window.location.pathname.match(/\/users\/([^\/]+)\//i);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  // Construcción de URLs por nombre (por si faltan en data-*)
+  function buildEnviarUrl(username){ return `/users/agregar/${encodeURIComponent(username)}/`; }
+  function buildCancelarUrl(username){ return `/users/cancelar-solicitud/${encodeURIComponent(username)}/`; }
+
+  // ===== Fabricas de botones (mismo estilo SIEMPRE) =====
+  function crearBotonEnviarSolicitud(username){
+    const urlEnviar = buildEnviarUrl(username);
+    const urlCancelar = buildCancelarUrl(username);
+    return `
+      <button id="btn-enviar-solicitud"
+              type="button"
+              class="btn btn-primary btn-sm mt-2"
+              data-username="${username}"
+              data-url-enviar="${urlEnviar}"
+              data-url-cancelar="${urlCancelar}">
+        <i class="bi bi-person-plus-fill"></i> Enviar solicitud de amistad
+      </button>
+    `;
+  }
+
+  function crearBotonCancelarSolicitud(username){
+    const urlCancelar = buildCancelarUrl(username);
+    return `
+      <button id="btn-cancelar-solicitud"
+              type="button"
+              class="btn btn-secondary btn-sm mt-2"
+              data-username="${username}"
+              data-url-cancelar="${urlCancelar}">
+        <i class="bi bi-x-circle-fill"></i> Cancelar solicitud
+      </button>
+    `;
+  }
+function crearBotonBorrarAmigo(username){
+  const url = `/users/borrar-amigo/${encodeURIComponent(username)}/`;
+  return `
+    <button id="btn-borrar-amigo"
+            type="button"
+            class="btn btn-danger btn-sm mt-2"
+            data-username="${username}"
+            data-url="${url}">
+      <i class="bi bi-person-dash-fill"></i> Borrar amigo
+    </button>
+  `;
+}
+
+// ===== Función borrar amigo =====
+async function borrarAmigo(url, btn){
+  const csrf = getCsrfToken();
+  if (!url) { alert('URL no configurada'); return; }
+
+  btn.disabled = true;
+  btn.dataset._html = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Eliminando...';
+
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrf || '',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
+      },
+      credentials: 'same-origin'
+    });
+
+    const raw = await resp.text();
+    let data = null;
+    try { data = JSON.parse(raw); } catch(e){}
+
+    if (!resp.ok || !data || data.status !== 'ok'){
+      alert((data && data.message) || 'Error al borrar amigo');
+      return;
+    }
+
+    // Sustituir por botón "Enviar solicitud"
+    const username = btn.dataset.username || getPerfilUsername();
+    const contSol = document.getElementById('solicitud-container');
+    if (contSol) contSol.innerHTML = crearBotonEnviarSolicitud(username);
+
+  } catch(err){
+    alert('Error en la conexión.');
+  } finally {
+    btn.disabled = false;
+    if (btn.dataset._html) btn.innerHTML = btn.dataset._html;
+  }
+}
+  
+  // ===== Llamadas =====
+  async function enviarSolicitud(url, btn){
+    const csrf = getCsrfToken();
+    if (!url) { alert('URL no configurada'); return; }
+
+    btn.disabled = true;
+    btn.dataset._html = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
+
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrf || '',
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json'
+        },
+        credentials: 'same-origin'
+      });
+
+      const raw = await resp.text();
+      let data = null;
+      try { data = JSON.parse(raw); } catch(e){}
+
+      if (!resp.ok || !data){
+        alert('Respuesta inesperada del servidor.');
+        return;
+      }
+      if (data.status !== 'ok') {
+        alert(data.message || 'Error al enviar solicitud');
+        return;
+      }
+
+      // Sustituir por botón "Cancelar"
+      const username = btn.dataset.username || getPerfilUsername();
+      const contSol = document.getElementById('solicitud-container');
+      if (contSol) contSol.innerHTML = crearBotonCancelarSolicitud(username);
+
+      // Recomendaciones (como antes)
+      const contRec = document.getElementById('recomendaciones_after_like');
+      if (contRec) {
+        contRec.innerHTML = '';
+        const recs = Array.isArray(data.recomendaciones) ? data.recomendaciones : [];
+        if (recs.length) {
+          const wrapper = document.createElement('div');
+          wrapper.classList.add('mt-3');
+          const h = document.createElement('h5');
+          h.textContent = 'Quizá también te interesen estas cuentas';
+          wrapper.appendChild(h);
+
+          const row = document.createElement('div');
+          row.className = 'd-flex gap-3 flex-wrap';
+
+          recs.forEach(u => {
+            const card = document.createElement('div');
+            card.className = 'd-flex align-items-center gap-2 border rounded p-2';
+            card.style.minWidth = '220px';
+
+            const img = document.createElement('img');
+            img.src = u.foto_url;
+            img.width = 48;
+            img.height = 48;
+            img.style.objectFit = 'cover';
+            img.className = 'rounded-circle';
+
+            const txt = document.createElement('div');
+            txt.innerHTML = `<a href="${u.perfil_url}" class="fw-bold text-dark" style="text-decoration:none;">${u.username}</a>`;
+
+            card.appendChild(img);
+            card.appendChild(txt);
+            row.appendChild(card);
+          });
+
+          wrapper.appendChild(row);
+          contRec.appendChild(wrapper);
+        } else {
+          contRec.innerHTML = '<p class="text-muted small">No se han encontrado sugerencias por ahora.</p>';
         }
+      }
+    } catch (err) {
+      alert('Error en la conexión.');
+    } finally {
+      btn.disabled = false;
+      if (btn.dataset._html) btn.innerHTML = btn.dataset._html;
+    }
+  }
 
-        function getCsrfToken() {
-          const fromCookie = getCookie('csrftoken');
-          const fromInput = (document.getElementById('csrf-token-input') || {}).value;
-          return fromCookie || (fromInput && fromInput !== 'NOTPROVIDED' ? fromInput : null);
-        }
+  async function cancelarSolicitud(url, btn){
+    const csrf = getCsrfToken();
+    if (!url) { alert('URL no configurada'); return; }
 
-        async function enviarSolicitud(url, btn){
-          const csrf = getCsrfToken();
-          if (!url) { log('ERROR: data-url vacío'); alert('URL no configurada'); return; }
-          log('Enviando POST a: ' + url);
+    btn.disabled = true;
+    btn.dataset._html = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Cancelando...';
 
-          // desactivar/estado visual
-          btn.disabled = true;
-          btn.dataset._html = btn.innerHTML;
-          btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrf || '',
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json'
+        },
+        credentials: 'same-origin'
+      });
 
-          try {
-            const resp = await fetch(url, {
-              method: 'POST',
-              headers: {
-                'X-CSRFToken': csrf || '',
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-              },
-              credentials: 'same-origin'
-            });
+      const raw = await resp.text();
+      let data = null;
+      try { data = JSON.parse(raw); } catch(e){}
 
-            log(`HTTP ${resp.status} redirected=${resp.redirected} url=${resp.url}`);
-            const raw = await resp.text();
-            log("Body (200 chars):\n" + raw.slice(0,200) + "\n---");
+      if (!resp.ok || !data || data.status !== 'ok'){
+        alert((data && data.message) || 'Error al cancelar solicitud');
+        return;
+      }
 
-            let data = null;
-            try { data = JSON.parse(raw); } catch(e){}
+      // Volver al botón "Enviar solicitud" (idéntico al original)
+      const username = btn.dataset.username || getPerfilUsername();
+      const contSol = document.getElementById('solicitud-container');
+      if (contSol) contSol.innerHTML = crearBotonEnviarSolicitud(username);
 
-            if (!resp.ok || !data){
-              if (resp.redirected || (resp.url && resp.url.toLowerCase().includes('login'))) {
-                alert('Parece que no estás logueado. Inicia sesión e inténtalo de nuevo.');
-              } else {
-                alert('Respuesta inesperada del servidor. Revisa consola/log.');
-              }
-              return;
-            }
+    } catch(err){
+      alert('Error en la conexión.');
+    } finally {
+      btn.disabled = false;
+      if (btn.dataset._html) btn.innerHTML = btn.dataset._html;
+    }
+  }
 
-            if (data.status !== 'ok') {
-              log('Servidor respondió status≠ok: ' + JSON.stringify(data));
-              alert(data.message || 'Error al enviar solicitud');
-              return;
-            }
+  // ===== Delegación única + guardas anti-doble click =====
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest('#btn-enviar-solicitud, #btn-cancelar-solicitud, #btn-borrar-amigo');
 
-            // Actualiza estado UI
-            const contSol = document.getElementById('solicitud-container');
-            if (contSol) {
-              contSol.innerHTML = `
-                <span class="badge bg-warning text-dark">
-                  <i class="bi bi-hourglass-split"></i> Solicitud pendiente
-                </span>
-              `;
-            }
+    if (!btn) return;
 
-            // Recomendaciones
-            const contRec = document.getElementById('recomendaciones_after_like');
-            if (contRec) {
-              contRec.innerHTML = '';
-              const recs = Array.isArray(data.recomendaciones) ? data.recomendaciones : [];
-              if (recs.length) {
-                const wrapper = document.createElement('div');
-                wrapper.classList.add('mt-3');
-                const h = document.createElement('h5');
-                h.textContent = 'Quizá también te interesen estas cuentas';
-                wrapper.appendChild(h);
+    // Evita dobles clics
+    if (btn.dataset.busy === '1' || btn.disabled) {
+      e.preventDefault();
+      return;
+    }
+    btn.dataset.busy = '1';
+    e.preventDefault();
 
-                const row = document.createElement('div');
-                row.className = 'd-flex gap-3 flex-wrap';
+    const username = btn.dataset.username || getPerfilUsername();
 
-                recs.forEach(u => {
-                  const card = document.createElement('div');
-                  card.className = 'd-flex align-items-center gap-2 border rounded p-2';
-                  card.style.minWidth = '220px';
+    if (btn.id === 'btn-enviar-solicitud') {
+      // Usa data-url-enviar si existe; si no, construye
+      const url = btn.dataset.urlEnviar || btn.dataset.url || buildEnviarUrl(username);
+      enviarSolicitud(url, btn).finally(()=> { delete btn.dataset.busy; });
+    } else if (btn.id === 'btn-cancelar-solicitud') {
+      // Usa data-url-cancelar si existe; si no, construye
+      const url = btn.dataset.urlCancelar || buildCancelarUrl(username);
+      cancelarSolicitud(url, btn).finally(()=> { delete btn.dataset.busy; });
+    }
+      else if(btn.id === 'btn-borrar-amigo') {
+       
+        const username = btn.dataset.username; // asegúrate de tenerlo en el HTML
+        const url = btn.dataset.url || `/users/borrar-amigo/${encodeURIComponent(username)}/`;
 
-                  const img = document.createElement('img');
-                  img.src = u.foto_url;
-                  img.width = 48;
-                  img.height = 48;
-                  img.style.objectFit = 'cover';
-                  img.className = 'rounded-circle';
+        borrarAmigo(url, btn)
+            .finally(() => { delete btn.dataset.busy; });
+    }
+    
+  }, { passive: false });
 
-                  const txt = document.createElement('div');
-                  txt.innerHTML = `<a href="${u.perfil_url}" class="fw-bold text-dark" style="text-decoration:none;">${u.username}</a>`;
+  log('Script de perfil iniciado.');
+})();
+</script>
 
-                  card.appendChild(img);
-                  card.appendChild(txt);
-                  row.appendChild(card);
-                });
 
-                wrapper.appendChild(row);
-                contRec.appendChild(wrapper);
-                log(`Mostradas ${recs.length} recomendaciones.`);
-              } else {
-                contRec.innerHTML = '<p class="text-muted small">No se han encontrado sugerencias por ahora.</p>';
-                log('Sin recomendaciones.');
-              }
-            }
-          } catch (err) {
-            log('Excepción fetch: ' + (err && err.message ? err.message : err));
-            alert('Error en la conexión.');
-          } finally {
-            // liberar guardas
-            delete btn.dataset.busy;
-            btn.disabled = false;
-            if (btn.dataset._html) btn.innerHTML = btn.dataset._html;
-          }
-        }
 
-        // ÚNICO handler (sin onclick inline)
-        document.addEventListener('click', function(e){
-          const btn = e.target.closest && e.target.closest('#btn-enviar-solicitud');
-          if (!btn) return;
-
-          // anti-doble click (guard inmediato)
-          if (btn.dataset.busy === '1' || btn.disabled) {
-            log('Ignorado: ya en curso');
-            e.preventDefault();
-            return;
-          }
-          btn.dataset.busy = '1';
-
-          e.preventDefault();
-          enviarSolicitud(btn.dataset.url, btn);
-        }, { passive: false });
-
-        log('Script inline de perfil iniciado.');
-      })();
-      </script>
       <!-- FIN SCRIPT INLINE -->
     </div>
   </div>

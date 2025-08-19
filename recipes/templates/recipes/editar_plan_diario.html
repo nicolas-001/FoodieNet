@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Editar Plan Diario: {{ plan.nombre }}</h2>
+
+<form method="post">
+  {% csrf_token %}
+  <p>
+    {{ form.nombre.label_tag }}<br>
+    {{ form.nombre }}
+  </p>
+
+  <fieldset>
+    <legend>{{ form.recetas.label }}</legend>
+    {{ form.recetas }}
+  </fieldset>
+
+  <button type="submit">💾 Guardar cambios</button>
+</form>
+
+<a href="{% url 'listar_planes_diarios' %}">⬅️ Volver al plan diario</a>
+{% endblock %}

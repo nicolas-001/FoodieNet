@@ -14,4 +14,7 @@ urlpatterns = [
     path('rechazar/<int:amistad_id>/', views.rechazar_amistad, name='rechazar_amistad'),
     path('agregar/<str:username>/', views.enviar_solicitud, name='enviar_solicitud'),
     path('<str:username>/', views.perfil_usuario, name='perfil_usuario'),
+    path('cancelar-solicitud/<str:username>/', views.cancelar_solicitud, name='cancelar_solicitud'),
+    path('borrar-amigo/<str:username>/', views.borrar_amigo, name='borrar_amigo'),
+
 ]

@@ -7,8 +7,8 @@ from django.views.generic import UpdateView
 from django.conf import settings
 from django.views.decorators.http import require_GET, require_POST
 from django.utils.dateformat import DateFormat
-from .models import Receta, Like, Favorito, Comentario
-from .forms import RecetaForm, ComentarioForm
+from .models import Receta, Like, Favorito, Comentario, PlanDiario
+from .forms import RecetaForm, ComentarioForm, PlanDiarioForm
 from users.models import Amistad
 from django.core.paginator import Paginator
 import os, re
@@ -112,16 +112,19 @@ def detalle_receta(request, pk):
 
 @login_required
 def crear_receta(request):
-    """
-    Crear una receta nueva. Sólo usuarios autenticados.
-    """
     if request.method == 'POST':
         form = RecetaForm(request.POST, request.FILES)
         if form.is_valid():
             nueva = form.save(commit=False)
             nueva.autor = request.user
-            nueva.save()
+            try:
+                nueva.save()
+                print("Receta guardada correctamente con ID:", nueva.pk)
+            except Exception as e:
+                print("Error guardando receta:", e)
             return redirect('detalle_receta', pk=nueva.pk)
+        else:
+            print("Formulario no válido:", form.errors)
     else:
         form = RecetaForm()
 
@@ -372,6 +375,7 @@ def calcular_calorias_macros(request, receta_id):
         'detalle_por_ingrediente': detalle["ingredientes"]
     })
 
+
 def normalizar_texto(texto):
     """
     Elimina tildes y convierte a minúsculas para comparar de forma flexible.
@@ -578,3 +582,41 @@ def obtener_recomendaciones_generales(user):
     recomendaciones = [r[0] for r in recetas_similares[:3]]
 
     return recomendaciones
+
+def crear_plan_diario(request):
+    form = PlanDiarioForm(request.POST or None)
+    recetas = Receta.objects.all()  # no necesitas hacer ninguna asignación
+    context = {"form": form, "recetas": recetas}
+    return render(request, "recipes/crear_plan_diario.html", context)
+@login_required
+def ver_plan_diario(request, pk):
+    plan = get_object_or_404(PlanDiario, pk=pk, usuario=request.user)
+    return render(request, "recipes/ver_plan_diario.html", {"plan": plan})
+
+@login_required
+def listar_planes_diarios(request):
+    planes = PlanDiario.objects.filter(usuario=request.user).order_by("-fecha")
+    return render(request, "recipes/listar_planes_diarios.html", {"planes": planes})
+
+@login_required
+def editar_plan_diario(request, pk):
+    plan = get_object_or_404(PlanDiario, pk=pk, usuario=request.user)
+    if request.method == "POST":
+        form = PlanDiarioForm(request.POST, instance=plan, usuario=request.user)
+        if form.is_valid():
+            plan = form.save()
+            plan.calcular_totales()
+            return redirect("listar_planes_diarios")
+    else:
+        form = PlanDiarioForm(instance=plan, usuario=request.user)
+
+    return render(request, "recipes/editar_plan_diario.html", {"form": form, "plan": plan})
+
+
+@login_required
+def eliminar_plan_diario(request, pk):
+    plan = get_object_or_404(PlanDiario, pk=pk, usuario=request.user)
+    if request.method == "POST":
+        plan.delete()
+        return redirect("listar_planes_diarios")
+    return render(request, "recipes/eliminar_plan_diario.html", {"plan": plan})

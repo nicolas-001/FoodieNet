@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>{{ plan.nombre }} - {{ plan.fecha }}</h2>
+
+<ul>
+  {% for receta in plan.recetas.all %}
+    <li>{{ receta.titulo }} ({{ receta.calorias_por_persona|default:"N/D" }} kcal)</li>
+  {% endfor %}
+</ul>
+
+<p><b>Calorías totales:</b> {{ plan.calorias_totales }} kcal</p>
+<p><b>Proteínas:</b> {{ plan.proteinas_totales }} g</p>
+<p><b>Grasas:</b> {{ plan.grasas_totales }} g</p>
+<p><b>Carbohidratos:</b> {{ plan.carbohidratos_totales }} g</p>
+{% endblock %}

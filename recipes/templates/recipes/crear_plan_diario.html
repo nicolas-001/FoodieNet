@@ -1,0 +1,80 @@
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Plan Diario</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <div class="mb-3">
+            {{ form.nombre.label_tag }}
+            {{ form.nombre }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.recetas.label_tag }}
+            <div id="recetas-list">
+                {% for receta in recetas %}
+                    <label class="d-block">
+                        <input type="checkbox" name="recetas" value="{{ receta.id }}"
+                            data-calorias="{{ receta.calorias_por_persona|default:0 }}"
+                            data-proteinas="{{ receta.proteinas_por_porcion|default:0|floatformat:1 }}"
+                            data-grasas="{{ receta.grasas_por_porcion|default:0|floatformat:1 }}"
+                            data-carbohidratos="{{ receta.carbohidratos_por_porcion|default:0|floatformat:1 }}">
+                        {{ receta.titulo }} - {{ receta.calorias_por_persona|floatformat:0 }} kcal
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Totales en tiempo real -->
+        <div class="card p-3 mt-3">
+            <h4>Totales del plan (en tiempo real)</h4>
+            <p><strong>Calorías:</strong> <span id="total-calorias">0.0</span> kcal</p>
+            <p><strong>Proteínas:</strong> <span id="total-proteinas">0.0</span> g</p>
+            <p><strong>Grasas:</strong> <span id="total-grasas">0.0</span> g</p>
+            <p><strong>Carbohidratos:</strong> <span id="total-carbohidratos">0.0</span> g</p>
+        </div>
+
+        <button type="submit" class="btn btn-primary mt-3">Guardar</button>
+    </form>
+</div>
+
+<!-- JS para actualizar totales en tiempo real -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const checkboxes = document.querySelectorAll('#recetas-list input[type="checkbox"]');
+    const totalCalorias = document.getElementById('total-calorias');
+    const totalProteinas = document.getElementById('total-proteinas');
+    const totalGrasas = document.getElementById('total-grasas');
+    const totalCarbohidratos = document.getElementById('total-carbohidratos');
+
+    function actualizarTotales() {
+        let calorias = 0, proteinas = 0, grasas = 0, carbohidratos = 0;
+
+        checkboxes.forEach(cb => {
+            if (cb.checked) {
+                calorias += parseFloat(cb.dataset.calorias || 0);
+                proteinas += parseFloat(cb.dataset.proteinas || 0);
+                grasas += parseFloat(cb.dataset.grasas || 0);
+                carbohidratos += parseFloat(cb.dataset.carbohidratos || 0);
+            }
+        });
+
+        totalCalorias.textContent = calorias.toFixed(1);
+        totalProteinas.textContent = proteinas.toFixed(1);
+        totalGrasas.textContent = grasas.toFixed(1);
+        totalCarbohidratos.textContent = carbohidratos.toFixed(1);
+    }
+
+    checkboxes.forEach(cb => cb.addEventListener('change', actualizarTotales));
+
+    // Inicializa los totales al cargar la página
+    actualizarTotales();
+});
+</script>
+{% endblock %}

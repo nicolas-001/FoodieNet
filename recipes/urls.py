@@ -19,4 +19,9 @@ urlpatterns = [
     path('seleccionar_ingredientes/', views.seleccionar_ingredientes, name='seleccionar_ingredientes'),
     path('recomendar/<int:receta_id>/', vista_recomendar_recetas, name='recomendar_recetas'),
     path('recomendaciones-dinamicas/<int:receta_id>/', views.recomendaciones_dinamicas, name='recomendaciones_dinamicas'),
+    path("planes/", views.listar_planes_diarios, name="listar_planes_diarios"),
+    path("planes/crear/", views.crear_plan_diario, name="crear_plan_diario"),
+    path("planes/<int:pk>/", views.ver_plan_diario, name="ver_plan_diario"),
+    path("planes/<int:pk>/editar/", views.editar_plan_diario, name="editar_plan_diario"),
+    path("planes/<int:pk>/eliminar/", views.eliminar_plan_diario, name="eliminar_plan_diario"),
 ]

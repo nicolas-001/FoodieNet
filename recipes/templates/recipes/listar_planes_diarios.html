@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Mis Planes diarios</h2>
+<a href="{% url 'crear_plan_diario' %}">➕ Nuevo plan</a>
+
+<ul>
+  {% for plan in planes %}
+    <li>
+      <a href="{% url 'ver_plan_diario' plan.pk %}">
+        {{ plan.nombre }} - {{ plan.fecha }} ({{ plan.calorias_totales }} kcal)
+      </a>
+      |
+      <a href="{% url 'editar_plan_diario' plan.pk %}">✏️ Editar</a>
+      |
+      <form method="post" action="{% url 'eliminar_plan_diario' plan.pk %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" onclick="return confirm('¿Seguro que deseas eliminar este plan?')">🗑 Eliminar</button>
+      </form>
+    </li>
+  {% empty %}
+    <p>No tienes planes creados.</p>
+  {% endfor %}
+</ul>
+
+{% endblock %}

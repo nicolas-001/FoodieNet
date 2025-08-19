@@ -6,6 +6,7 @@ from .forms import UserEditForm,PerfilForm  # Formulario para editar usuario
 from .models import Amistad
 from django.contrib import messages
 from django.http import JsonResponse
+from django.urls import reverse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
@@ -398,3 +399,40 @@ def obtener_usuarios_similares(usuario_objetivo, top_n=3):
     indices_similares = similitudes.argsort()[::-1][:top_n]
 
     return [user_index_map[i] for i in indices_similares]
+@login_required
+def cancelar_solicitud(request, username):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Método no permitido")
+
+    otro = get_object_or_404(User, username=username)
+
+    try:
+        amistad = Amistad.objects.get(de_usuario=request.user, para_usuario=otro, aceptada=False)
+        amistad.delete()
+        return JsonResponse({
+            "status": "ok",
+            "message": "Solicitud cancelada",
+            "username": username,
+            "enviar_url": f"/users/enviar_solicitud/{username}/"
+        })
+    except Amistad.DoesNotExist:
+        return JsonResponse({"status": "error", "message": "No había solicitud pendiente"})
+
+@login_required
+def borrar_amigo(request, username):
+    if request.method == "POST":
+        amigo = get_object_or_404(User, username=username)
+
+        # eliminar relación (amistad aceptada)
+        Amistad.objects.filter(
+            Q(de_usuario=request.user, para_usuario=amigo, aceptada=True) |
+            Q(de_usuario=amigo, para_usuario=request.user, aceptada=True)
+        ).delete()
+
+        return JsonResponse({
+            "status": "ok",
+            "accion": "borrada",
+            "enviar_url": reverse("users:enviar_solicitud", args=[amigo.username])
+        })
+
+    return JsonResponse({"status": "error", "message": "Método no permitido"}, status=405)

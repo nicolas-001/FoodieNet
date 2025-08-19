@@ -3,10 +3,13 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from users.models import Amistad
 from taggit.managers import TaggableManager
+from scripts.calorias_por_receta import calcular_macros_para_receta  # ajusta el import según tu estructura
+
 
 class Receta(models.Model):
     autor            = models.ForeignKey(User, on_delete=models.CASCADE)
     titulo           = models.CharField(max_length=255)
+    porciones = models.PositiveIntegerField(default=1, help_text="Número de porciones de la receta")
     descripcion      = models.TextField()
     ingredientes     = models.TextField()
     pasos            = models.TextField()
@@ -26,6 +29,23 @@ class Receta(models.Model):
     carbohidratos = models.FloatField(null=True, blank=True)
     tags = TaggableManager()
     
+    def save(self, *args, **kwargs):
+        try:
+            # Solo calcular si hay ingredientes y no se ha calculado antes o se actualiza explícitamente
+            if self.ingredientes and (self.calorias is None or kwargs.get('update_macros', False)):
+                detalle = calcular_macros_para_receta(self)
+                if detalle:
+                    self.calorias = detalle.get("calorias_totales") or 0
+                    self.proteinas = detalle.get("proteinas_totales") or 0
+                    self.grasas = detalle.get("grasas_totales") or 0
+                    self.carbohidratos = detalle.get("carbohidratos_totales") or 0
+                else:
+                    print("Advertencia: calcular_macros_para_receta devolvió None para", self.titulo)
+        except Exception as e:
+            print("Error calculando macros para receta '{}': {}".format(self.titulo, e))
+
+        # Guardar la receta pase lo que pase
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.titulo
@@ -35,6 +55,24 @@ class Receta(models.Model):
         if self.autor == user:
             return True
         return Amistad.objects.filter(de_usuario=self.autor, para_usuario=user, aceptada=True).exists()
+    
+    @property
+    def calorias_por_persona(self):
+        if self.calorias and self.porciones:
+            return self.calorias / self.porciones
+        return None  # O 0 si prefieres
+    def proteinas_por_persona(self):
+        if self.proteinas and self.porciones:
+            return self.proteinas / self.porciones
+        return None  # O 0 si prefieres
+    def grasas_por_persona(self):
+        if self.grasas and self.porciones:
+            return self.grasas / self.porciones
+        return None  # O 0 si prefieres
+    def carbohidratos_por_persona(self):
+        if self.carbohidratos and self.porciones:
+            return self.carbohidratos / self.porciones
+        return None  # O 0 si prefieres
 
 
 
@@ -69,3 +107,27 @@ class Comentario(models.Model):
 
     def __str__(self):
         return f"{self.autor.username} en {self.receta.titulo}"
+
+class PlanDiario(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="planes_diarios")
+    nombre = models.CharField(max_length=100, help_text="Nombre del plan, por ejemplo 'Lunes', 'Martes', etc.")
+    fecha = models.DateField(auto_now_add=True)  # el día del plan
+    recetas = models.ManyToManyField(Receta, related_name="planes")  # varias recetas por día
+    
+    # Totales automáticos
+    calorias_totales = models.FloatField(default=0)
+    proteinas_totales = models.FloatField(default=0)
+    grasas_totales = models.FloatField(default=0)
+    carbohidratos_totales = models.FloatField(default=0)
+
+    def calcular_totales(self):
+        """Suma los valores nutricionales por persona de todas las recetas del plan"""
+        self.calorias_totales = sum(r.calorias_por_persona or 0 for r in self.recetas.all())
+        self.proteinas_totales = sum((r.proteinas / r.porciones) if r.proteinas else 0 for r in self.recetas.all())
+        self.grasas_totales = sum((r.grasas / r.porciones) if r.grasas else 0 for r in self.recetas.all())
+        self.carbohidratos_totales = sum((r.carbohidratos / r.porciones) if r.carbohidratos else 0 for r in self.recetas.all())
+        self.save()
+
+
+    def __str__(self):
+        return f"{self.nombre} - {self.usuario.username} ({self.fecha})"
