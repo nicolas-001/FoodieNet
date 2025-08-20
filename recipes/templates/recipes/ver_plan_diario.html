@@ -7,9 +7,14 @@
     {% if tdee %}
         <p><strong>Tu gasto estimado (TDEE):</strong> {{ tdee }} kcal</p>
         <p><strong>Estado:</strong> {{ estado }}</p>
-        {% if recomendacion %}
+
+        {% if recomendaciones %}
             <div class="alert alert-info">
-                {{ recomendacion }}
+                <ul>
+                {% for r in recomendaciones %}
+                    <li>{{ r }}</li>
+                {% endfor %}
+                </ul>
             </div>
         {% endif %}
 
@@ -27,7 +32,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Calorías: comparativa plan vs TDEE
 {% if tdee %}
 const ctxCal = document.getElementById('caloriasChart').getContext('2d');
 new Chart(ctxCal, {
@@ -40,16 +44,10 @@ new Chart(ctxCal, {
             backgroundColor: ['#4CAF50', '#2196F3']
         }]
     },
-    options: {
-        responsive: true,
-        scales: {
-            y: { beginAtZero: true }
-        }
-    }
+    options: { responsive: true, scales: { y: { beginAtZero: true } } }
 });
 {% endif %}
 
-// Pie de macros
 const ctx = document.getElementById('macrosChart').getContext('2d');
 new Chart(ctx, {
     type: 'pie',
@@ -62,9 +60,7 @@ new Chart(ctx, {
     },
     options: {
         responsive: true,
-        plugins: {
-            legend: { position: 'bottom' }
-        }
+        plugins: { legend: { position: 'bottom' } }
     }
 });
 </script>

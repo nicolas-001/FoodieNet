@@ -15,22 +15,27 @@
         </div>
 
         <div class="mb-3">
-            {{ form.recetas.label_tag }}
-            <div id="recetas-list">
-                {% for receta in recetas %}
-                    <label class="d-block">
-                        <input type="checkbox" name="recetas" value="{{ receta.id }}"
-                            data-calorias="{{ receta.calorias_por_persona|default:0 }}"
-                            data-proteinas="{{ receta.proteinas_por_persona|default:0 }}"
-                            data-grasas="{{ receta.grasas_por_persona|default:0 }}"
-                            data-carbohidratos="{{ receta.carbohidratos_por_persona|default:0 }}">
-                        {{ receta.titulo }} - {{ receta.calorias_por_persona|default:0|floatformat:0 }} kcal
-                    </label>
-                {% endfor %}
-            </div>
-        </div>
+    <label>Selecciona recetas para tu plan</label>
+    <div id="recetas-list">
+    {% for receta in form.fields.recetas.queryset %}
+        <label class="d-block border p-2 rounded mb-2">
+            <input type="checkbox"
+                   name="recetas"
+                   value="{{ receta.id }}"
+                   data-calorias="{{ receta.calorias_por_persona }}"
+                   data-proteinas="{{ receta.proteinas_por_persona }}"
+                   data-grasas="{{ receta.grasas_por_persona }}"
+                   data-carbohidratos="{{ receta.carbohidratos_por_persona }}">
+            <strong>{{ receta.titulo }}</strong><br>
+            {{ receta.calorias_por_persona|floatformat:0 }} kcal | 
+            P: {{ receta.proteinas_por_persona|floatformat:1 }} g · 
+            G: {{ receta.grasas_por_persona|floatformat:1 }} g · 
+            C: {{ receta.carbohidratos_por_persona|floatformat:1 }} g
+        </label>
+    {% endfor %}
+</div>
 
-        <!-- Totales + botón en un card -->
+
         <div class="card p-3 mt-3">
             <h4>Totales del plan</h4>
             <div class="row">
@@ -51,13 +56,8 @@
 </div>
 
 <script>
-const checkboxes = document.querySelectorAll('#recetas-list input[type="checkbox"]');
-const totalCalorias = document.getElementById('total-calorias');
-const totalProteinas = document.getElementById('total-proteinas');
-const totalGrasas = document.getElementById('total-grasas');
-const totalCarbohidratos = document.getElementById('total-carbohidratos');
-
 function actualizarTotales() {
+    const checkboxes = document.querySelectorAll('#recetas-list input[type="checkbox"]');
     let calorias = 0, proteinas = 0, grasas = 0, carbohidratos = 0;
 
     checkboxes.forEach(cb => {
@@ -69,14 +69,16 @@ function actualizarTotales() {
         }
     });
 
-    totalCalorias.textContent = calorias.toFixed(1);
-    totalProteinas.textContent = proteinas.toFixed(1);
-    totalCarbohidratos.textContent = carbohidratos.toFixed(1);
-    totalGrasas.textContent = grasas.toFixed(1);
+    document.getElementById('total-calorias').textContent = calorias.toFixed(1);
+    document.getElementById('total-proteinas').textContent = proteinas.toFixed(1);
+    document.getElementById('total-grasas').textContent = grasas.toFixed(1);
+    document.getElementById('total-carbohidratos').textContent = carbohidratos.toFixed(1);
 }
 
-checkboxes.forEach(cb => cb.addEventListener('change', actualizarTotales));
+document.querySelectorAll('#recetas-list input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', actualizarTotales);
+});
+
 actualizarTotales();
 </script>
-
 {% endblock %}
