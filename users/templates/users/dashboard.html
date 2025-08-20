@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>Dashboard - {{ request.user.username }}</h2>
+
+{% if plan_hoy %}
+<h3>Progreso del día ({{ plan_hoy.fecha }})</h3>
+<ul>
+    <li>Calorías: {{ progreso_calorias_hoy }}%</li>
+    <li>Proteínas: {{ progreso_proteinas_hoy }}%</li>
+    <li>Grasas: {{ progreso_grasas_hoy }}%</li>
+    <li>Carbohidratos: {{ progreso_carbohidratos_hoy }}%</li>
+</ul>
+<div class="progress">
+    <div class="progress-bar bg-success" role="progressbar" style="width: {{ progreso_calorias_hoy }}%;">Calorías</div>
+</div>
+<div class="progress">
+    <div class="progress-bar bg-info" role="progressbar" style="width: {{ progreso_proteinas_hoy }}%;">Proteínas</div>
+</div>
+<div class="progress">
+    <div class="progress-bar bg-warning" role="progressbar" style="width: {{ progreso_grasas_hoy }}%;">Grasas</div>
+</div>
+<div class="progress">
+    <div class="progress-bar bg-danger" role="progressbar" style="width: {{ progreso_carbohidratos_hoy }}%;">Carbohidratos</div>
+</div>
+{% else %}
+<p>No tienes un plan creado para hoy.</p>
+{% endif %}
+
+<h3>Todos tus planes diarios</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Fecha</th>
+            <th>Calorías</th>
+            <th>Proteínas</th>
+            <th>Grasas</th>
+            <th>Carbohidratos</th>
+            <th>Recetas</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in planes_diarios %}
+        <tr>
+            <td>{{ item.plan.nombre }}</td>
+            <td>{{ item.plan.fecha }}</td>
+            <td>{{ item.plan.calorias_totales }}</td>
+            <td>{{ item.plan.proteinas_totales }}</td>
+            <td>{{ item.plan.grasas_totales }}</td>
+            <td>{{ item.plan.carbohidratos_totales }}</td>
+            <td>
+                {% for receta in item.plan.recetas.all %}
+                    {{ receta.titulo }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

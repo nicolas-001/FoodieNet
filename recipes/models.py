@@ -61,14 +61,17 @@ class Receta(models.Model):
         if self.calorias and self.porciones:
             return self.calorias / self.porciones
         return None  # O 0 si prefieres
+    @property
     def proteinas_por_persona(self):
         if self.proteinas and self.porciones:
             return self.proteinas / self.porciones
         return None  # O 0 si prefieres
+    @property
     def grasas_por_persona(self):
         if self.grasas and self.porciones:
             return self.grasas / self.porciones
         return None  # O 0 si prefieres
+    @property
     def carbohidratos_por_persona(self):
         if self.carbohidratos and self.porciones:
             return self.carbohidratos / self.porciones

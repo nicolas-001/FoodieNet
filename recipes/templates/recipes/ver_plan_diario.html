@@ -1,16 +1,71 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block content %}
+<div class="container mt-4">
+    <h2>{{ plan.nombre }}</h2>
+    <p><strong>Calorías totales del plan:</strong> {{ total_calorias }} kcal</p>
 
-<h2>{{ plan.nombre }} - {{ plan.fecha }}</h2>
+    {% if tdee %}
+        <p><strong>Tu gasto estimado (TDEE):</strong> {{ tdee }} kcal</p>
+        <p><strong>Estado:</strong> {{ estado }}</p>
+        {% if recomendacion %}
+            <div class="alert alert-info">
+                {{ recomendacion }}
+            </div>
+        {% endif %}
 
-<ul>
-  {% for receta in plan.recetas.all %}
-    <li>{{ receta.titulo }} ({{ receta.calorias_por_persona|default:"N/D" }} kcal)</li>
-  {% endfor %}
-</ul>
+        <!-- Comparación gráfica calorías plan vs TDEE -->
+        <canvas id="caloriasChart" class="my-4"></canvas>
+    {% else %}
+        <p><em>Completa tu perfil para calcular tu gasto energético.</em></p>
+    {% endif %}
 
-<p><b>Calorías totales:</b> {{ plan.calorias_totales }} kcal</p>
-<p><b>Proteínas:</b> {{ plan.proteinas_totales }} g</p>
-<p><b>Grasas:</b> {{ plan.grasas_totales }} g</p>
-<p><b>Carbohidratos:</b> {{ plan.carbohidratos_totales }} g</p>
+    <div class="mt-4">
+        <h4>Distribución de macronutrientes</h4>
+        <canvas id="macrosChart"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Calorías: comparativa plan vs TDEE
+{% if tdee %}
+const ctxCal = document.getElementById('caloriasChart').getContext('2d');
+new Chart(ctxCal, {
+    type: 'bar',
+    data: {
+        labels: ['Plan', 'TDEE'],
+        datasets: [{
+            label: 'Calorías',
+            data: [{{ total_calorias }}, {{ tdee }}],
+            backgroundColor: ['#4CAF50', '#2196F3']
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: { beginAtZero: true }
+        }
+    }
+});
+{% endif %}
+
+// Pie de macros
+const ctx = document.getElementById('macrosChart').getContext('2d');
+new Chart(ctx, {
+    type: 'pie',
+    data: {
+        labels: ['Proteínas', 'Grasas', 'Carbohidratos'],
+        datasets: [{
+            data: [{{ total_prot }}, {{ total_grasas }}, {{ total_carbs }}],
+            backgroundColor: ['#36A2EB', '#FF6384', '#FFCE56']
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' }
+        }
+    }
+});
+</script>
 {% endblock %}

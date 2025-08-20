@@ -24,4 +24,5 @@ urlpatterns = [
     path("planes/<int:pk>/", views.ver_plan_diario, name="ver_plan_diario"),
     path("planes/<int:pk>/editar/", views.editar_plan_diario, name="editar_plan_diario"),
     path("planes/<int:pk>/eliminar/", views.eliminar_plan_diario, name="eliminar_plan_diario"),
+    
 ]

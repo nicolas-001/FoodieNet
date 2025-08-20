@@ -14,9 +14,22 @@ class UserEditForm(forms.ModelForm):
 class PerfilForm(forms.ModelForm):
     class Meta:
         model = Perfil
-        fields = ['foto', 'biografia']
+        fields = [
+            'foto',
+            'biografia',
+            'edad',
+            'peso',
+            'altura',
+            'sexo',
+            'objetivo',
+        ]
         widgets = {
-            'biografia': forms.Textarea(attrs={'rows':3, 'class':'form-control'}),
+            'biografia': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'edad': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
+            'peso': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+            'altura': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+            'sexo': forms.Select(attrs={'class': 'form-select'}),
+            'objetivo': forms.Select(attrs={'class': 'form-select'}),
         }
 class UserSearchForm(forms.Form):
     """Formulario para buscar usuarios por username."""

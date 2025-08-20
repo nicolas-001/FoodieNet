@@ -9,15 +9,62 @@ def ruta_foto_perfil(instance, filename):
 
 class Perfil(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    foto = models.ImageField(
-        upload_to=ruta_foto_perfil,
-        default='perfiles/default.jpeg',
-        blank=True
-    )
+    foto = models.ImageField(upload_to="perfiles", blank=True, null=True)
     biografia = models.TextField(blank=True)
+    edad = models.PositiveIntegerField(blank=True, null=True)
+    peso = models.FloatField(blank=True, null=True)  # kg
+    altura = models.FloatField(blank=True, null=True)  # cm
+    sexo = models.CharField(
+        max_length=10,
+        choices=[("M", "Masculino"), ("F", "Femenino")],
+        blank=True, null=True
+    )
+    objetivo = models.CharField(
+        max_length=20,
+        choices=[("deficit", "Déficit calórico"), ("mantenimiento", "Mantenimiento"), ("superavit", "Superávit calórico")],
+        default="mantenimiento"
+    )
+    nivel_actividad = models.CharField(
+        max_length=20,
+        choices=[
+            ("sedentario", "Sedentario"),
+            ("ligero", "Ligero"),
+            ("moderado", "Moderado"),
+            ("activo", "Activo"),
+            ("muy_activo", "Muy Activo"),
+        ],
+        default="sedentario"
+    )
 
-    def __str__(self):
-        return f'Perfil de {self.user.username}'
+    def calcular_tmb(self):
+        """Calcular TMB con fórmula Mifflin-St Jeor"""
+        if not self.peso or not self.altura or not self.edad or not self.sexo:
+            return None
+        if self.sexo == "M":
+            return 10 * self.peso + 6.25 * self.altura - 5 * self.edad + 5
+        else:
+            return 10 * self.peso + 6.25 * self.altura - 5 * self.edad - 161
+
+    def calcular_calorias_objetivo(self):
+        """Calcular calorías objetivo según actividad y objetivo"""
+        tmb = self.calcular_tmb()
+        if not tmb:
+            return None
+
+        factores = {
+            "sedentario": 1.2,
+            "ligero": 1.375,
+            "moderado": 1.55,
+            "activo": 1.725,
+            "muy_activo": 1.9,
+        }
+        mantenimiento = tmb * factores.get(self.nivel_actividad, 1.2)
+
+        if self.objetivo == "deficit":
+            return mantenimiento - 500
+        elif self.objetivo == "superavit":
+            return mantenimiento + 500
+        return mantenimiento
 
     @property
     def get_foto_url(self):

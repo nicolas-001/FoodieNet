@@ -7,6 +7,7 @@ from django.views.generic import UpdateView
 from django.conf import settings
 from django.views.decorators.http import require_GET, require_POST
 from django.utils.dateformat import DateFormat
+from datetime import date
 from .models import Receta, Like, Favorito, Comentario, PlanDiario
 from .forms import RecetaForm, ComentarioForm, PlanDiarioForm
 from users.models import Amistad
@@ -583,15 +584,87 @@ def obtener_recomendaciones_generales(user):
 
     return recomendaciones
 
+@login_required
 def crear_plan_diario(request):
-    form = PlanDiarioForm(request.POST or None)
-    recetas = Receta.objects.all()  # no necesitas hacer ninguna asignación
-    context = {"form": form, "recetas": recetas}
-    return render(request, "recipes/crear_plan_diario.html", context)
+    if request.method == 'POST':
+        form = PlanDiarioForm(request.POST, usuario=request.user)
+        if form.is_valid():
+            plan = form.save(commit=False)
+            plan.usuario = request.user
+            plan.save()
+            form.save_m2m()  # Esto guarda correctamente las recetas seleccionadas
+            plan.calcular_totales()  # Actualiza totales
+            return redirect('listar_planes_diarios')  # Cambia por la vista correcta
+    else:
+        form = PlanDiarioForm(usuario=request.user)
+
+    recetas = Receta.objects.all()
+    return render(request, "recipes/crear_plan_diario.html", {"form": form, "recetas": recetas})
+
+@login_required
+
 @login_required
 def ver_plan_diario(request, pk):
     plan = get_object_or_404(PlanDiario, pk=pk, usuario=request.user)
-    return render(request, "recipes/ver_plan_diario.html", {"plan": plan})
+
+    # Usamos valores precalculados en el modelo
+    total_calorias = plan.calorias_totales
+    total_prot = plan.proteinas_totales
+    total_grasas = plan.grasas_totales
+    total_carbs = plan.carbohidratos_totales
+
+    perfil = getattr(request.user, "perfil", None)
+    tdee = None
+    estado = "No disponible"
+    recomendacion = None
+
+    if perfil:
+        peso = perfil.peso or 70
+        altura = perfil.altura or 170
+        edad = perfil.edad or 25
+        sexo = perfil.sexo or "M"
+
+        # Fórmula Mifflin-St Jeor
+        if sexo == "M":
+            bmr = 10 * peso + 6.25 * altura - 5 * edad + 5
+        else:
+            bmr = 10 * peso + 6.25 * altura - 5 * edad - 161
+
+        factor_actividad = getattr(perfil, "factor_actividad", 1.5)
+        tdee = round(bmr * factor_actividad, 1)
+
+        # Diferencia calórica
+        diferencia = total_calorias - tdee
+
+        # Estado y recomendaciones
+        if diferencia < -500:
+            estado = "Déficit calórico"
+            recomendacion = "Tu déficit es demasiado agresivo. Considera aumentar unas {} kcal para estar en un déficit moderado.".format(abs(diferencia) - 500)
+        elif -500 <= diferencia <= -200:
+            estado = "Déficit calórico"
+            recomendacion = "Buen déficit moderado para perder grasa de forma sostenible."
+        elif -200 < diferencia < 200:
+            estado = "Mantenimiento"
+            recomendacion = "Tus calorías están cerca de tu gasto, ideal para mantener el peso."
+        elif 200 <= diferencia <= 500:
+            estado = "Superávit calórico"
+            recomendacion = "Buen superávit moderado para ganar músculo sin excesiva grasa."
+        elif diferencia > 500:
+            estado = "Superávit calórico"
+            recomendacion = "Tu superávit es muy alto. Reduce unas {} kcal para un volumen más controlado.".format(diferencia - 500)
+
+    context = {
+        "plan": plan,
+        "total_calorias": total_calorias,
+        "total_prot": total_prot,
+        "total_grasas": total_grasas,
+        "total_carbs": total_carbs,
+        "tdee": tdee,
+        "estado": estado,
+        "recomendacion": recomendacion,
+    }
+    return render(request, "recipes/ver_plan_diario.html", context)
+
 
 @login_required
 def listar_planes_diarios(request):
@@ -620,3 +693,4 @@ def eliminar_plan_diario(request, pk):
         plan.delete()
         return redirect("listar_planes_diarios")
     return render(request, "recipes/eliminar_plan_diario.html", {"plan": plan})
+

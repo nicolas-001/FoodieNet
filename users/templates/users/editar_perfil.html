@@ -10,6 +10,7 @@
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
 
+    <!-- Datos de usuario -->
     <fieldset style="border:1px solid #ccc; padding:1rem; margin-bottom:1rem;">
       <legend>Datos de usuario</legend>
       {{ form_user.non_field_errors }}
@@ -25,8 +26,10 @@
       </p>
     </fieldset>
 
+    <!-- Datos de perfil -->
     <fieldset style="border:1px solid #ccc; padding:1rem; margin-bottom:1rem;">
       <legend>Datos de perfil</legend>
+
       <p>
         <label for="id_foto">Foto de perfil:</label><br>
         {{ form_perfil.foto.errors }}
@@ -36,10 +39,41 @@
           <img src="{{ request.user.perfil.foto.url }}" alt="Foto actual" width="120" style="border-radius:50%; margin-top:0.5rem;">
         {% endif %}
       </p>
+
       <p>
         <label for="id_biografia">Biografía:</label><br>
         {{ form_perfil.biografia.errors }}
         {{ form_perfil.biografia }}
+      </p>
+
+      <p>
+        <label for="id_edad">Edad:</label><br>
+        {{ form_perfil.edad.errors }}
+        {{ form_perfil.edad }}
+      </p>
+
+      <p>
+        <label for="id_peso">Peso (kg):</label><br>
+        {{ form_perfil.peso.errors }}
+        {{ form_perfil.peso }}
+      </p>
+
+      <p>
+        <label for="id_altura">Altura (cm):</label><br>
+        {{ form_perfil.altura.errors }}
+        {{ form_perfil.altura }}
+      </p>
+
+      <p>
+        <label for="id_sexo">Sexo:</label><br>
+        {{ form_perfil.sexo.errors }}
+        {{ form_perfil.sexo }}
+      </p>
+
+      <p>
+        <label for="id_objetivo">Objetivo:</label><br>
+        {{ form_perfil.objetivo.errors }}
+        {{ form_perfil.objetivo }}
       </p>
     </fieldset>
 

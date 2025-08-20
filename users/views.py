@@ -3,7 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from recipes.models import Receta, Favorito  # Ajusta si tu modelo se llama distinto
 from .forms import UserEditForm,PerfilForm  # Formulario para editar usuario
-from .models import Amistad
+from .models import Amistad, Perfil
+from datetime import date
+from recipes.models import PlanDiario
 from django.contrib import messages
 from django.http import JsonResponse
 from django.urls import reverse
@@ -436,3 +438,48 @@ def borrar_amigo(request, username):
         })
 
     return JsonResponse({"status": "error", "message": "Método no permitido"}, status=405)
+@login_required
+def dashboard(request):
+    usuario = request.user
+
+    # Obtener el perfil del usuario
+    try:
+        perfil = Perfil.objects.get(user=usuario)
+    except Perfil.DoesNotExist:
+        perfil = None
+
+    # Obtener todos los planes diarios del usuario
+    planes_diarios = PlanDiario.objects.filter(usuario=usuario).order_by('-fecha')
+
+    # Calcular progreso de calorías para cada plan
+    planes_con_progreso = []
+    calorias_objetivo = perfil.calcular_calorias_objetivo() if perfil else None
+
+    plan_hoy_progreso = 0
+    plan_hoy_obj = None
+
+    for plan in planes_diarios:
+        plan.calcular_totales()  # Asegurarse de que los totales estén actualizados
+        if calorias_objetivo:
+            progreso_calorias = min(int((plan.calorias_totales / calorias_objetivo) * 100), 100)
+        else:
+            progreso_calorias = 0
+
+        planes_con_progreso.append({
+            'plan': plan,
+            'progreso_calorias': progreso_calorias,
+        })
+
+        # Guardar progreso de hoy si es el plan de hoy
+        if plan.fecha == date.today():
+            plan_hoy_progreso = progreso_calorias
+            plan_hoy_obj = plan
+
+    context = {
+        'perfil': perfil,
+        'planes_diarios': planes_con_progreso,
+        'plan_hoy': plan_hoy_obj,
+        'progreso_calorias_hoy': plan_hoy_progreso,
+    }
+
+    return render(request, 'users/dashboard.html', context)
