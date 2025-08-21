@@ -27,6 +27,7 @@ urlpatterns = [
     path('', include('recipes.urls')),  # Incluye las URLs de la app recipes
     path('auth/', include(('authentication.urls', 'authentication'), namespace='authentication')),
     path('users/', include(('users.urls', 'users'), namespace='users')),
+    path("__reload__/", include("django_browser_reload.urls")),
 
 
 ]

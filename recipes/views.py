@@ -18,6 +18,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from recipes.utils.traductor import traducir_ingrediente_a_ingles
 from .utils.recomendador import recomendar_recetas
+from .utils.funciones_auxiliares import truncar
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd

@@ -1,62 +1,68 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% load static %}
+
 {% block content %}
-
-<h2>Dashboard - {{ request.user.username }}</h2>
-
-{% if plan_hoy %}
-<h3>Progreso del día ({{ plan_hoy.fecha }})</h3>
-<ul>
-    <li>Calorías: {{ progreso_calorias_hoy }}%</li>
-    <li>Proteínas: {{ progreso_proteinas_hoy }}%</li>
-    <li>Grasas: {{ progreso_grasas_hoy }}%</li>
-    <li>Carbohidratos: {{ progreso_carbohidratos_hoy }}%</li>
-</ul>
-<div class="progress">
-    <div class="progress-bar bg-success" role="progressbar" style="width: {{ progreso_calorias_hoy }}%;">Calorías</div>
+<div class="flex flex-col sm:flex-row justify-between items-center mb-8">
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4 sm:mb-0">Mis planes diarios</h1>
+    <a href="{% url 'crear_plan_diario' %}" 
+       class="bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 
+              text-white font-semibold px-6 py-3 rounded-full shadow-xl transform hover:-translate-y-1 hover:scale-105 transition-all duration-300">
+        + Crear nuevo plan
+    </a>
 </div>
-<div class="progress">
-    <div class="progress-bar bg-info" role="progressbar" style="width: {{ progreso_proteinas_hoy }}%;">Proteínas</div>
-</div>
-<div class="progress">
-    <div class="progress-bar bg-warning" role="progressbar" style="width: {{ progreso_grasas_hoy }}%;">Grasas</div>
-</div>
-<div class="progress">
-    <div class="progress-bar bg-danger" role="progressbar" style="width: {{ progreso_carbohidratos_hoy }}%;">Carbohidratos</div>
-</div>
-{% else %}
-<p>No tienes un plan creado para hoy.</p>
-{% endif %}
 
-<h3>Todos tus planes diarios</h3>
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Nombre</th>
-            <th>Fecha</th>
-            <th>Calorías</th>
-            <th>Proteínas</th>
-            <th>Grasas</th>
-            <th>Carbohidratos</th>
-            <th>Recetas</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in planes_diarios %}
-        <tr>
-            <td>{{ item.plan.nombre }}</td>
-            <td>{{ item.plan.fecha }}</td>
-            <td>{{ item.plan.calorias_totales }}</td>
-            <td>{{ item.plan.proteinas_totales }}</td>
-            <td>{{ item.plan.grasas_totales }}</td>
-            <td>{{ item.plan.carbohidratos_totales }}</td>
-            <td>
-                {% for receta in item.plan.recetas.all %}
-                    {{ receta.titulo }}{% if not forloop.last %}, {% endif %}
-                {% endfor %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for plan in planes %}
+    <div class="bg-gradient-to-b from-white to-green-50 rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden
+                border border-gray-200 hover:border-green-300 transform hover:-translate-y-1 hover:scale-105">
+        <div class="p-6">
+            <!-- Título clicable -->
+            <a href="{% url 'ver_plan_diario' plan.pk %}" 
+               class="block text-2xl font-extrabold text-gray-900 hover:text-green-600 transition-colors mb-4 truncate">
+                {{ plan.nombre }}
+            </a>
 
+            <!-- Fecha del plan -->
+            <p class="text-gray-500 text-sm mb-6">{{ plan.fecha|date:"d/m/Y" }}</p>
+
+            <!-- Macronutrientes -->
+            <div class="grid grid-cols-2 gap-6">
+                {% comment %} Cada bloque de macronutriente tiene hover ligero {% endcomment %}
+                <div class="flex flex-col items-center bg-white rounded-2xl p-4 shadow-inner hover:shadow-lg hover:scale-105 transition-transform duration-300">
+                    <img src="{% static 'icons/calorias.png' %}" alt="Calorías" class="w-12 h-12 mb-2 animate-pulse-slow">
+                    <span class="text-gray-700 font-semibold">{{ plan.calorias_totales }} kcal</span>
+                </div>
+                <div class="flex flex-col items-center bg-white rounded-2xl p-4 shadow-inner hover:shadow-lg hover:scale-105 transition-transform duration-300">
+                    <img src="{% static 'icons/proteinas.png' %}" alt="Proteínas" class="w-12 h-12 mb-2 animate-pulse-slow">
+                    <span class="text-gray-700 font-semibold">{{ plan.proteinas_totales }} g</span>
+                </div>
+                <div class="flex flex-col items-center bg-white rounded-2xl p-4 shadow-inner hover:shadow-lg hover:scale-105 transition-transform duration-300">
+                    <img src="{% static 'icons/grasas.png' %}" alt="Grasas" class="w-12 h-12 mb-2 animate-pulse-slow">
+                    <span class="text-gray-700 font-semibold">{{ plan.grasas_totales }} g</span>
+                </div>
+                <div class="flex flex-col items-center bg-white rounded-2xl p-4 shadow-inner hover:shadow-lg hover:scale-105 transition-transform duration-300">
+                    <img src="{% static 'icons/carbohidratos.png' %}" alt="Carbohidratos" class="w-12 h-12 mb-2 animate-pulse-slow">
+                    <span class="text-gray-700 font-semibold">{{ plan.carbohidratos_totales }} g</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <p class="col-span-full text-gray-500 text-center mt-10">No tienes planes creados aún.</p>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+/* Animación lenta de pulso para iconos */
+@keyframes pulse-slow {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+.animate-pulse-slow {
+    animation: pulse-slow 2s infinite;
+}
+</style>
 {% endblock %}

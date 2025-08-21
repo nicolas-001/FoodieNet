@@ -1,104 +1,81 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container my-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Amigos</h1>
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold">Amigos</h1>
     {% if user.is_authenticated %}
-      <a href="{% url 'crear_receta' %}" class="btn btn-primary">
-        <i class="bi bi-plus-lg"></i> Crear nueva receta
+      <a href="{% url 'crear_receta' %}" 
+         class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg shadow hover:bg-indigo-700 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        Crear nueva receta
       </a>
     {% endif %}
   </div>
 
   {% if page_obj.object_list %}
-    <div class="row g-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       {% for receta in page_obj.object_list %}
-        <div class="col-md-6">
-          <div class="card h-100 shadow-sm">
-            {% if receta.imagen %}
-              <img src="{{ receta.imagen.url }}" class="card-img-top" alt="{{ receta.titulo }}" style="object-fit: cover; height: 250px;">
-            {% endif %}
-            <div class="card-body">
-              <h5 class="card-title d-flex align-items-center">
-                <a href="{% url 'detalle_receta' receta.pk %}" class="text-decoration-none text-dark">
-                  {{ receta.titulo }}
-                </a>
-                {% if receta.es_publica %}
-                  <i class="bi bi-globe ms-2" title="Receta pública" style="color: green;"></i>
-                {% else %}
-                  <i class="bi bi-lock-fill ms-2" title="Receta privada" style="color: red;"></i>
-                {% endif %}
-              </h5>
-              <div class="d-flex align-items-center mb-2">
-                <img src="{{ receta.autor.perfil.foto.url }}" 
-                     alt="Foto de perfil" 
-                     class="rounded-circle me-2" 
-                     style="width: 40px; height: 40px; object-fit: cover;">
-                <small class="text-muted">Por: {{ receta.autor.username }}</small>
-              </div>
-              <p class="card-text"><strong>Descripción:</strong> {{ receta.descripcion }}</p>
-              <p class="card-text"><strong>Ingredientes:</strong> {{ receta.ingredientes }}</p>
-              <p class="card-text"><strong>Pasos:</strong> {{ receta.pasos }}</p>
+        <div class="bg-white rounded-2xl shadow hover:shadow-lg transition overflow-hidden">
+          {% if receta.imagen %}
+            <img src="{{ receta.imagen.url }}" alt="{{ receta.titulo }}"
+                 class="w-full h-64 object-cover">
+          {% endif %}
+          <div class="p-5">
+            <h2 class="text-xl font-semibold flex items-center gap-2">
+              <a href="{% url 'detalle_receta' receta.pk %}" class="hover:text-indigo-600 transition">
+                {{ receta.titulo }}
+              </a>
+              {% if receta.es_publica %}
+                <span class="text-green-500" title="Receta pública">🌍</span>
+              {% else %}
+                <span class="text-red-500" title="Receta privada">🔒</span>
+              {% endif %}
+            </h2>
+
+            <div class="flex items-center mt-3 mb-4">
+              <img src="{{ receta.autor.perfil.foto.url }}" 
+                   alt="Foto de perfil"
+                   class="w-10 h-10 rounded-full object-cover mr-3">
+              <small class="text-gray-600">Por: {{ receta.autor.username }}</small>
             </div>
+
+            <p class="text-gray-700 mb-2">
+              <span class="font-semibold">Descripción:</span> {{ receta.descripcion }}
+            </p>
+        
           </div>
         </div>
       {% endfor %}
     </div>
 
-    <!-- Controles de paginación -->
-    <nav aria-label="Paginación recetas" class="mt-4">
-      <ul class="pagination justify-content-center">
-        {% if page_obj.has_previous %}
-          <li class="page-item">
-            <a class="page-link" href="?page=1" aria-label="Primera">
-              <span aria-hidden="true">&laquo;&laquo;</span>
-            </a>
-          </li>
-          <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Anterior">
-              <span aria-hidden="true">&laquo;</span>
-            </a>
-          </li>
-        {% else %}
-          <li class="page-item disabled">
-            <span class="page-link">&laquo;&laquo;</span>
-          </li>
-          <li class="page-item disabled">
-            <span class="page-link">&laquo;</span>
-          </li>
-        {% endif %}
+    <!-- Paginación -->
+    <div class="flex justify-center items-center mt-8 space-x-2">
+      {% if page_obj.has_previous %}
+        <a href="?page=1" class="px-3 py-1 rounded-lg border bg-white hover:bg-gray-100">&laquo;&laquo;</a>
+        <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 rounded-lg border bg-white hover:bg-gray-100">&laquo;</a>
+      {% else %}
+        <span class="px-3 py-1 rounded-lg border bg-gray-100 text-gray-400">&laquo;&laquo;</span>
+        <span class="px-3 py-1 rounded-lg border bg-gray-100 text-gray-400">&laquo;</span>
+      {% endif %}
 
-        <li class="page-item disabled">
-          <span class="page-link">
-            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
-          </span>
-        </li>
+      <span class="px-4 py-1 rounded-lg border bg-indigo-600 text-white">
+        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+      </span>
 
-        {% if page_obj.has_next %}
-          <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Siguiente">
-              <span aria-hidden="true">&raquo;</span>
-            </a>
-          </li>
-          <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Última">
-              <span aria-hidden="true">&raquo;&raquo;</span>
-            </a>
-          </li>
-        {% else %}
-          <li class="page-item disabled">
-            <span class="page-link">&raquo;</span>
-          </li>
-          <li class="page-item disabled">
-            <span class="page-link">&raquo;&raquo;</span>
-          </li>
-        {% endif %}
-      </ul>
-    </nav>
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 rounded-lg border bg-white hover:bg-gray-100">&raquo;</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-1 rounded-lg border bg-white hover:bg-gray-100">&raquo;&raquo;</a>
+      {% else %}
+        <span class="px-3 py-1 rounded-lg border bg-gray-100 text-gray-400">&raquo;</span>
+        <span class="px-3 py-1 rounded-lg border bg-gray-100 text-gray-400">&raquo;&raquo;</span>
+      {% endif %}
+    </div>
 
   {% else %}
-    <p class="text-muted">No hay recetas disponibles.</p>
+    <p class="text-gray-500 text-center mt-6">No hay recetas disponibles.</p>
   {% endif %}
 </div>
 {% endblock %}

@@ -3,127 +3,151 @@
 {% block title %}{{ receta.titulo }} - FoodieNet{% endblock %}
 
 {% block content %}
-  <h1>{{ receta.titulo }}</h1>
-  <p><small>👁️ Visitas: {{ receta.visitas }}</small></p>
+<div class="max-w-3xl mx-auto bg-white shadow rounded-2xl p-6">
+  <!-- Título -->
+  <h1 class="text-3xl font-bold mb-2">{{ receta.titulo }}</h1>
+  <p class="text-sm text-gray-500 mb-4">👁️ Visitas: {{ receta.visitas }}</p>
 
-  <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
-    <img
-      src="{{ receta.autor.perfil.foto.url }}"
-      alt="Foto de perfil de {{ receta.autor.username }}"
-      style="width:50px; height:50px; border-radius:50%; object-fit:cover;"
-    >
-    <p><strong>Autor:</strong> {{ receta.autor.username }}</p>
+  <!-- Autor -->
+  <div class="flex items-center gap-3 mb-4">
+    <img src="{{ receta.autor.perfil.foto.url }}"
+         alt="Foto de perfil de {{ receta.autor.username }}"
+         class="w-12 h-12 rounded-full object-cover">
+    <p class="text-gray-700"><strong>Autor:</strong> {{ receta.autor.username }}</p>
   </div>
 
-  <p>
+  <!-- Info receta -->
+  <p class="text-gray-700 mb-3">
     <strong>Dificultad:</strong> {{ receta.dificultad }} &nbsp; | &nbsp;
     <strong>Tiempo:</strong> {{ receta.tiempo_preparacion }} minutos &nbsp; | &nbsp;
     <strong>Raciones:</strong> {{ receta.porciones }}
   </p>
 
+  <!-- Tags -->
   {% if receta.tags.count %}
-    <p>
-      <strong>Tags:</strong>
+    <div class="mb-3">
+      <strong class="text-gray-700">Tags:</strong>
       {% for tag in receta.tags.all %}
-        <span style="background:#eee; padding:2px 6px; margin-right:4px; border-radius:4px; font-size:0.9em;">
+        <span class="inline-block bg-gray-200 text-gray-700 text-sm px-2 py-1 rounded-md mr-1">
           {{ tag.name }}
         </span>
       {% endfor %}
-    </p>
-  {% endif %}
-
-  <p><strong>Descripción:</strong> {{ receta.descripcion }}</p>
-  <p><strong>Ingredientes:</strong> {{ receta.ingredientes }}</p>
-  <p><strong>Pasos:</strong> {{ receta.pasos }}</p>
-
-  {% if receta.imagen %}
-    <div style="margin:16px 0;">
-      <img
-        src="{{ receta.imagen.url }}"
-        alt="{{ receta.titulo }}"
-        width="300"
-        style="object-fit:cover; border-radius:8px;"
-      >
     </div>
   {% endif %}
 
-  <p><strong>Fecha de creación:</strong> {{ receta.fecha_creacion|date:"d M Y H:i" }}</p>
+  <!-- Descripción / Ingredientes / Pasos -->
+  <div class="space-y-3 text-gray-800">
+    <p><strong>Descripción:</strong> {{ receta.descripcion }}</p>
+    <p><strong>Ingredientes:</strong> {{ receta.ingredientes }}</p>
+    <p><strong>Pasos:</strong> {{ receta.pasos }}</p>
+  </div>
 
-  {% if user.is_authenticated and user == receta.autor %}
-    <p><a href="{% url 'editar_receta' receta.pk %}">✏️ Editar receta</a></p>
+  <!-- Imagen -->
+  {% if receta.imagen %}
+    <div class="my-6">
+      <img src="{{ receta.imagen.url }}" alt="{{ receta.titulo }}"
+           class="w-72 rounded-xl shadow object-cover">
+    </div>
   {% endif %}
 
-  <hr>
+  <p class="text-sm text-gray-500 mb-4">
+    <strong>Fecha de creación:</strong> {{ receta.fecha_creacion|date:"d M Y H:i" }}
+  </p>
 
-  {% if user.is_authenticated %}
-    <form id="form-like" method="post" action="{% url 'toggle_like' receta.pk %}" style="display:inline;">
-      {% csrf_token %}
-      <button type="submit" id="btn-like" style="background:none; border:none; cursor:pointer; font-size:1.2em;">
-        <span id="like-icon">{% if liked %}❤️{% else %}🤍{% endif %}</span>
-        <span id="like-count">{{ receta.total_likes }}</span>
-      </button>
-    </form>
-
-    <form id="form-favorito" method="post" action="{% url 'toggle_favorito' receta.pk %}" style="display:inline;">
-  {% csrf_token %}
-  <button type="submit" id="btn-favorito" style="background:none; border:none; cursor:pointer; font-size:1.2em;">
-    {% if user.is_authenticated and favorited %}
-      ★ <span id="fav-count">{{ receta.favorito_set.count }}</span>
-    {% else %}
-      ☆ <span id="fav-count">{{ receta.favorito_set.count }}</span>
-    {% endif %}
-  </button>
-</form>
-  {% else %}
-    <p>
-      <a href="{% url 'authentication:login' %}?next={% url 'detalle_receta' receta.pk %}">Inicia sesión</a>
-      para dar like o favorito.
+  <!-- Editar -->
+  {% if user.is_authenticated and user == receta.autor %}
+    <p class="mb-4">
+      <a href="{% url 'editar_receta' receta.pk %}" class="text-blue-600 hover:underline">✏️ Editar receta</a>
     </p>
   {% endif %}
 
-  <div id="recomendacionesDinamicas" style="margin-top:24px;"></div>
+  <hr class="my-6">
+
+  <!-- Likes y Favoritos -->
+  {% if user.is_authenticated %}
+    <div class="flex items-center gap-4 mb-4">
+      <form id="form-like" method="post" action="{% url 'toggle_like' receta.pk %}">
+        {% csrf_token %}
+        <button type="submit" id="btn-like" class="text-xl">
+          <span id="like-icon">{% if liked %}❤️{% else %}🤍{% endif %}</span>
+          <span id="like-count">{{ receta.total_likes }}</span>
+        </button>
+      </form>
+
+      <form id="form-favorito" method="post" action="{% url 'toggle_favorito' receta.pk %}">
+        {% csrf_token %}
+        <button type="submit" id="btn-favorito" class="text-xl">
+          {% if user.is_authenticated and favorited %}
+            ★ <span id="fav-count">{{ receta.favorito_set.count }}</span>
+          {% else %}
+            ☆ <span id="fav-count">{{ receta.favorito_set.count }}</span>
+          {% endif %}
+        </button>
+      </form>
+    </div>
+  {% else %}
+    <p class="text-sm text-gray-600 mb-4">
+      <a href="{% url 'authentication:login' %}?next={% url 'detalle_receta' receta.pk %}" class="text-blue-600 hover:underline">
+        Inicia sesión
+      </a> para dar like o favorito.
+    </p>
+  {% endif %}
+
+  <!-- Recomendaciones dinámicas -->
+  <div id="recomendacionesDinamicas" class="mt-6"></div>
 
   <hr class="my-6">
 
-  <button id="btnCalcularMacros" class="btn btn-primary" style="padding:8px 16px; font-size:1em; cursor:pointer;">
+  <!-- Calcular macros -->
+  <button id="btnCalcularMacros"
+          class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow">
     Calcular calorías y macros
   </button>
 
-  <div id="resultadosMacros" style="margin-top:16px; font-size:1em; color:#333;"></div>
+  <div id="resultadosMacros" class="mt-4 text-gray-700"></div>
 
   <hr class="my-6">
 
-  <h3>Comentarios ({{ receta.comentarios.count }})</h3>
+  <!-- Comentarios -->
+  <h3 class="text-xl font-semibold mb-4">Comentarios ({{ receta.comentarios.count }})</h3>
 
   {% if user.is_authenticated %}
-    <form method="post" action="" class="mb-4">
+    <form method="post" action="" class="mb-6">
       {% csrf_token %}
       {{ form.texto.errors }}
       {{ form.texto }}
-      <button type="submit" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded">Publicar comentario</button>
+      <button type="submit" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        Publicar comentario
+      </button>
     </form>
   {% else %}
-    <p>
-      <a href="{% url 'authentication:login' %}?next={% url 'detalle_receta' receta.pk %}">Inicia sesión</a> para dejar un comentario.
+    <p class="text-sm text-gray-600 mb-4">
+      <a href="{% url 'authentication:login' %}?next={% url 'detalle_receta' receta.pk %}" class="text-blue-600 hover:underline">
+        Inicia sesión
+      </a> para dejar un comentario.
     </p>
   {% endif %}
 
   <ul class="space-y-4">
     {% for c in comentarios %}
-      <li class="border p-4 rounded">
+      <li class="border p-4 rounded-lg">
         <p class="text-sm text-gray-600">
           <strong>{{ c.autor.username }}</strong>
           <span class="ml-2">{{ c.creado|date:"d M Y H:i" }}</span>
         </p>
-        <p>{{ c.texto }}</p>
+        <p class="mt-1 text-gray-800">{{ c.texto }}</p>
       </li>
     {% empty %}
-      <li>No hay comentarios todavía. ¡Sé el primero!</li>
+      <li class="text-gray-500">No hay comentarios todavía. ¡Sé el primero!</li>
     {% endfor %}
   </ul>
 
-  <hr>
-  <p><a href="{% url 'lista_recetas' %}">← Volver a la lista de recetas</a></p>
+  <hr class="my-6">
+
+  <p>
+    <a href="{% url 'lista_recetas' %}" class="text-blue-600 hover:underline">← Volver a la lista de recetas</a>
+  </p>
+</div>
 
   <script>
     // Función para obtener cookie CSRF
