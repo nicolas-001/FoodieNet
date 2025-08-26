@@ -1,85 +1,96 @@
-{# users/templates/users/editar_perfil.html #}
 {% extends "base.html" %}
 {% load static %}
+{% load widget_tweaks %}
 
 {% block title %}Editar mi perfil – FoodieNet{% endblock %}
 
 {% block content %}
-  <h1>Editar perfil</h1>
+<div class="container mx-auto my-8 px-4 max-w-3xl">
+  <h1 class="text-2xl font-bold mb-6">Editar perfil</h1>
 
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data" class="space-y-6 bg-white p-6 rounded shadow">
     {% csrf_token %}
 
     <!-- Datos de usuario -->
-    <fieldset style="border:1px solid #ccc; padding:1rem; margin-bottom:1rem;">
-      <legend>Datos de usuario</legend>
+    <div class="border border-gray-300 rounded p-4">
+      <h2 class="font-semibold text-lg mb-4">Datos de usuario</h2>
       {{ form_user.non_field_errors }}
-      <p>
-        <label for="id_username">Nombre de usuario:</label><br>
+
+      <div class="mb-4">
+        <label for="id_username" class="block font-medium mb-1">Nombre de usuario:</label>
         {{ form_user.username.errors }}
-        {{ form_user.username }}
-      </p>
-      <p>
-        <label for="id_email">Correo electrónico:</label><br>
+        {{ form_user.username|add_class:"w-full border-gray-300 rounded p-2" }}
+      </div>
+
+      <div class="mb-4">
+        <label for="id_email" class="block font-medium mb-1">Correo electrónico:</label>
         {{ form_user.email.errors }}
-        {{ form_user.email }}
-      </p>
-    </fieldset>
+        {{ form_user.email|add_class:"w-full border-gray-300 rounded p-2" }}
+      </div>
+    </div>
 
     <!-- Datos de perfil -->
-    <fieldset style="border:1px solid #ccc; padding:1rem; margin-bottom:1rem;">
-      <legend>Datos de perfil</legend>
+    <div class="border border-gray-300 rounded p-4">
+      <h2 class="font-semibold text-lg mb-4">Datos de perfil</h2>
 
-      <p>
-        <label for="id_foto">Foto de perfil:</label><br>
+      <div class="mb-4">
+        <label for="id_foto" class="block font-medium mb-1">Foto de perfil:</label>
         {{ form_perfil.foto.errors }}
-        {{ form_perfil.foto }}
-        {% if request.user.perfil.foto.url %}
-          <br>
-          <img src="{{ request.user.perfil.foto.url }}" alt="Foto actual" width="120" style="border-radius:50%; margin-top:0.5rem;">
+        {{ form_perfil.foto|add_class:"w-full" }}
+        {% if request.user.perfil.foto %}
+          <img src="{{ request.user.perfil.foto.url }}" alt="Foto actual" class="w-32 h-32 rounded-full mt-2 object-cover border">
         {% endif %}
-      </p>
+      </div>
 
-      <p>
-        <label for="id_biografia">Biografía:</label><br>
+      <div class="mb-4">
+        <label for="id_biografia" class="block font-medium mb-1">Biografía:</label>
         {{ form_perfil.biografia.errors }}
-        {{ form_perfil.biografia }}
-      </p>
+        {{ form_perfil.biografia|add_class:"w-full border-gray-300 rounded p-2" }}
+      </div>
 
-      <p>
-        <label for="id_edad">Edad:</label><br>
-        {{ form_perfil.edad.errors }}
-        {{ form_perfil.edad }}
-      </p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label for="id_edad" class="block font-medium mb-1">Edad:</label>
+          {{ form_perfil.edad.errors }}
+          {{ form_perfil.edad|add_class:"w-full border-gray-300 rounded p-2" }}
+        </div>
 
-      <p>
-        <label for="id_peso">Peso (kg):</label><br>
-        {{ form_perfil.peso.errors }}
-        {{ form_perfil.peso }}
-      </p>
+        <div>
+          <label for="id_peso" class="block font-medium mb-1">Peso (kg):</label>
+          {{ form_perfil.peso.errors }}
+          {{ form_perfil.peso|add_class:"w-full border-gray-300 rounded p-2" }}
+        </div>
 
-      <p>
-        <label for="id_altura">Altura (cm):</label><br>
-        {{ form_perfil.altura.errors }}
-        {{ form_perfil.altura }}
-      </p>
+        <div>
+          <label for="id_altura" class="block font-medium mb-1">Altura (cm):</label>
+          {{ form_perfil.altura.errors }}
+          {{ form_perfil.altura|add_class:"w-full border-gray-300 rounded p-2" }}
+        </div>
+      </div>
 
-      <p>
-        <label for="id_sexo">Sexo:</label><br>
-        {{ form_perfil.sexo.errors }}
-        {{ form_perfil.sexo }}
-      </p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label for="id_sexo" class="block font-medium mb-1">Sexo:</label>
+          {{ form_perfil.sexo.errors }}
+          {{ form_perfil.sexo|add_class:"w-full border-gray-300 rounded p-2" }}
+        </div>
 
-      <p>
-        <label for="id_objetivo">Objetivo:</label><br>
-        {{ form_perfil.objetivo.errors }}
-        {{ form_perfil.objetivo }}
-      </p>
-    </fieldset>
+        <div>
+          <label for="id_objetivo" class="block font-medium mb-1">Objetivo:</label>
+          {{ form_perfil.objetivo.errors }}
+          {{ form_perfil.objetivo|add_class:"w-full border-gray-300 rounded p-2" }}
+        </div>
+      </div>
+    </div>
 
-    <button type="submit" style="padding:0.5rem 1rem; background:#28a745; color:white; border:none; border-radius:4px;">
-      Guardar cambios
-    </button>
-    <a href="{% url 'users:perfil_usuario' request.user.username %}" style="margin-left:1rem;">Cancelar</a>
+    <div class="flex items-center gap-4">
+      <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded transition">
+        Guardar cambios
+      </button>
+      <a href="{% url 'users:perfil_usuario' request.user.username %}" class="text-gray-600 hover:underline">
+        Cancelar
+      </a>
+    </div>
   </form>
+</div>
 {% endblock %}

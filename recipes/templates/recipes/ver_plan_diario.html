@@ -1,35 +1,115 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container mt-4">
-    <h2>{{ plan.nombre }}</h2>
-    <p><strong>Calorías totales del plan:</strong> {{ total_calorias }} kcal</p>
+<div class="container mx-auto my-10 px-4">
+
+    <!-- Título del plan -->
+    <div class="text-center mb-10">
+        <h2 class="text-4xl font-extrabold text-gray-800 mb-2">{{ plan.nombre }}</h2>
+        <p class="text-gray-500 text-lg">Calorías totales: <span class="font-semibold">{{ total_calorias }} kcal</span></p>
+    </div>
+
+    <!-- Lista de Recetas -->
+    <div class="mb-10">
+        <h3 class="text-2xl font-semibold text-gray-800 mb-4">Recetas del plan</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {% for receta in plan.recetas.all %}
+            <div class="border rounded-xl overflow-hidden shadow-sm bg-white">
+                {% if receta.imagen %}
+                    <img src="{{ receta.imagen.url }}" alt="{{ receta.titulo }}" class="w-full h-32 object-cover">
+                {% else %}
+                    <div class="w-full h-32 flex items-center justify-center bg-gray-200 text-gray-500 text-2xl">
+                        📷
+                    </div>
+                {% endif %}
+                <div class="p-4 space-y-1">
+                    <strong class="text-gray-900">{{ receta.titulo }}</strong>
+                    <p class="text-sm text-gray-600 mt-1">{{ receta.calorias_por_persona|floatformat:0 }} kcal</p>
+                    <p class="text-xs text-gray-500">
+                        <span class="text-blue-600">P: {{ receta.proteinas_por_persona|floatformat:1 }}g</span> · 
+                        <span class="text-green-600">G: {{ receta.grasas_por_persona|floatformat:1 }}g</span> · 
+                        <span class="text-orange-600">C: {{ receta.carbohidratos_por_persona|floatformat:1 }}g</span>
+                    </p>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-gray-500">No hay recetas en este plan.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Lista de Platos Personalizados -->
+    <div class="mb-10">
+        <h3 class="text-2xl font-semibold text-gray-800 mb-4">Platos personalizados</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {% for plato in plan.platos_personalizados.all %}
+            <div class="border rounded-xl overflow-hidden shadow-sm bg-white p-4">
+                <strong class="text-gray-900">{{ plato.nombre }}</strong>
+                <p class="text-sm text-gray-600 mt-1">
+                    {{ plato.calorias|floatformat:0 }} kcal
+                    {% if plato.cantidad %} x {{ plato.cantidad|floatformat:1 }} = {{ plato.calorias|floatformat:0|floatformat:"0"|add:"0" }} kcal{% endif %}
+                </p>
+                <p class="text-xs text-gray-500">
+                    <span class="text-blue-600">P: {{ plato.proteinas|floatformat:1 }}g</span> · 
+                    <span class="text-green-600">G: {{ plato.grasas|floatformat:1 }}g</span> · 
+                    <span class="text-orange-600">C: {{ plato.carbohidratos|floatformat:1 }}g</span>
+                </p>
+            </div>
+            {% empty %}
+            <p class="text-gray-500">No hay platos personalizados en este plan.</p>
+            {% endfor %}
+        </div>
+    </div>
 
     {% if tdee %}
-        <p><strong>Tu gasto estimado (TDEE):</strong> {{ tdee }} kcal</p>
-        <p><strong>Estado:</strong> {{ estado }}</p>
+    <!-- Información TDEE y recomendaciones -->
+    <div class="grid md:grid-cols-2 gap-6 mb-10">
+        <!-- Tarjeta TDEE -->
+        <div class="bg-gradient-to-r from-green-100 to-green-50 shadow-lg rounded-xl p-6 transform hover:-translate-y-1 transition-transform duration-300">
+            <h3 class="text-2xl font-semibold mb-3 text-green-800">Tu TDEE</h3>
+            <p class="text-gray-700 text-lg"><span class="font-bold">{{ tdee }} kcal</span></p>
+            <p class="text-gray-700 mt-2"><strong>Estado:</strong> {{ estado }}</p>
+        </div>
 
+        <!-- Tarjeta Recomendaciones -->
         {% if recomendaciones %}
-            <div class="alert alert-info">
-                <ul>
+        <div class="bg-gradient-to-r from-blue-50 to-blue-100 shadow-lg rounded-xl p-6 transform hover:-translate-y-1 transition-transform duration-300">
+            <h3 class="text-2xl font-semibold mb-3 text-blue-800">Recomendaciones</h3>
+            <ul class="list-disc list-inside text-gray-700 space-y-1">
                 {% for r in recomendaciones %}
                     <li>{{ r }}</li>
                 {% endfor %}
-                </ul>
-            </div>
+            </ul>
+        </div>
         {% endif %}
+    </div>
 
-        <!-- Comparación gráfica calorías plan vs TDEE -->
-        <canvas id="caloriasChart" class="my-4"></canvas>
+    <!-- Gráfico comparativo calorías -->
+    <div class="bg-white shadow-xl rounded-2xl p-6 mb-10 animate-fadeIn">
+        <h3 class="text-2xl font-semibold mb-4 text-gray-800">Comparación Calorías Plan vs TDEE</h3>
+        <canvas id="caloriasChart" class="w-full h-64"></canvas>
+    </div>
+
     {% else %}
-        <p><em>Completa tu perfil para calcular tu gasto energético.</em></p>
+    <div class="bg-yellow-50 border-l-8 border-yellow-400 text-yellow-800 p-6 rounded-xl text-center mb-10 animate-pulse">
+        <em>Completa tu perfil para calcular tu gasto energético.</em>
+    </div>
     {% endif %}
 
-    <div class="mt-4">
-        <h4>Distribución de macronutrientes</h4>
-        <canvas id="macrosChart"></canvas>
+    <!-- Distribución de macronutrientes -->
+    <div class="bg-white shadow-xl rounded-2xl p-6 animate-fadeIn">
+        <h3 class="text-2xl font-semibold mb-4 text-gray-800">Distribución de Macronutrientes</h3>
+        <canvas id="macrosChart" class="w-full h-64"></canvas>
     </div>
+
 </div>
 
+<!-- Animaciones Tailwind -->
+<style>
+@keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
+.animate-fadeIn { animation: fadeIn 1s ease-in-out; }
+</style>
+
+<!-- Scripts Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 {% if tdee %}
@@ -41,10 +121,10 @@ new Chart(ctxCal, {
         datasets: [{
             label: 'Calorías',
             data: [{{ total_calorias }}, {{ tdee }}],
-            backgroundColor: ['#4CAF50', '#2196F3']
+            backgroundColor: ['#34D399', '#3B82F6'] // verde y azul Tailwind
         }]
     },
-    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    options: { responsive: true, scales: { y: { beginAtZero: true } }, animation: { duration: 1000 } }
 });
 {% endif %}
 
@@ -55,12 +135,13 @@ new Chart(ctx, {
         labels: ['Proteínas', 'Grasas', 'Carbohidratos'],
         datasets: [{
             data: [{{ total_prot }}, {{ total_grasas }}, {{ total_carbs }}],
-            backgroundColor: ['#36A2EB', '#FF6384', '#FFCE56']
+            backgroundColor: ['#3B82F6', '#EF4444', '#FACC15'] // azul, rojo, amarillo Tailwind
         }]
     },
     options: {
         responsive: true,
-        plugins: { legend: { position: 'bottom' } }
+        plugins: { legend: { position: 'bottom' } },
+        animation: { animateScale: true, animateRotate: true }
     }
 });
 </script>

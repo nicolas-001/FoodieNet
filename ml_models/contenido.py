@@ -28,11 +28,13 @@ class ContentBasedRecommender:
         return True
 
     def preprocess(self):
-        if not self.check_tags_format():
-            raise ValueError("Hay filas con tags mal formados o vacíos.")
+        # Reemplazar tags mal formados o vacíos por lista con 'sin_tag'
+        def normalize_tags(tags):
+            if not isinstance(tags, list) or len(tags) == 0:
+                return ['sin_tag']
+            return [str(t) for t in tags if t] or ['sin_tag']
 
-        self.df = self.df[self.df['tags'].map(lambda x: isinstance(x, list) and len(x) > 0)]
-        self.df['tags'] = self.df['tags'].apply(lambda tags: [str(t) for t in tags if t])
+        self.df['tags'] = self.df['tags'].apply(normalize_tags)
         self.df['tags_text'] = self.df['tags'].apply(lambda tags: ' '.join(tags))
 
         if 'ingredientes_text' not in self.df.columns:
@@ -61,6 +63,7 @@ class ContentBasedRecommender:
 
         self.feature_matrix = hstack([tags_vectores, ingredientes_vectores, tiempo_sparse])
         self.similarity_matrix = cosine_similarity(self.feature_matrix)
+
 
 
     def recomendar_similares(self, receta_id, top_n=5):
@@ -95,16 +98,4 @@ class ContentBasedRecommender:
         top_indices = [i for i, _ in sim_scores[:top_n]]
 
         return self.df.iloc[top_indices][['id', 'titulo', 'tags', 'tiempo_preparacion']]
-# Paso 1: Preparar tu DataFrame (ya lo tienes, por ejemplo recetas_df)
 
-# Paso 2: Crear instancia
-##recomendador = ContentBasedRecommender(recetas_df)
-
-# Paso 3: Preprocesar (generar matrices)
-#recomendador.preprocess()
-
-# Paso 4: Obtener recomendaciones para receta con id=123
-#similares = recomendador.recomendar_similares(123, top_n=5)
-
-# Mostrar resultados
-#print(similares)

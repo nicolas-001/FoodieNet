@@ -1,72 +1,157 @@
 {% extends "base.html" %}
 {% load static %}
+{% load widget_tweaks %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Plan Diario</h2>
+<div class="max-w-5xl mx-auto px-4 py-8 bg-white rounded-xl shadow-lg">
+    <!-- Header -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-800">
+            {% if form.instance.pk %}✏️ Editar{% else %}➕ Crear{% endif %} Plan Diario
+        </h2>
+        <p class="text-gray-500 mt-1">Organiza tus recetas y controla los nutrientes de tu día.</p>
+    </div>
 
-    <form method="post">
+    <!-- Formulario -->
+    <form method="post" class="space-y-8">
         {% csrf_token %}
         {{ form.non_field_errors }}
 
-        <div class="mb-3">
-            {{ form.nombre.label_tag }}
-            {{ form.nombre }}
+        <!-- Nombre del plan -->
+        <div>
+            <label for="{{ form.nombre.id_for_label }}" class="block text-gray-700 font-medium mb-2">Nombre del Plan</label>
+            {{ form.nombre|add_class:"w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
         </div>
 
-        <div class="mb-3">
-    <label>Selecciona recetas para tu plan</label>
-    <div id="recetas-list">
-    {% for receta in form.fields.recetas.queryset %}
-        <label class="d-block border p-2 rounded mb-2">
-            <input type="checkbox"
-                   name="recetas"
-                   value="{{ receta.id }}"
-                   data-calorias="{{ receta.calorias_por_persona }}"
-                   data-proteinas="{{ receta.proteinas_por_persona }}"
-                   data-grasas="{{ receta.grasas_por_persona }}"
-                   data-carbohidratos="{{ receta.carbohidratos_por_persona }}">
-            <strong>{{ receta.titulo }}</strong><br>
-            {{ receta.calorias_por_persona|floatformat:0 }} kcal | 
-            P: {{ receta.proteinas_por_persona|floatformat:1 }} g · 
-            G: {{ receta.grasas_por_persona|floatformat:1 }} g · 
-            C: {{ receta.carbohidratos_por_persona|floatformat:1 }} g
-        </label>
-    {% endfor %}
-</div>
+        <!-- Buscar receta -->
+        <div>
+            <label class="block text-gray-700 font-medium mb-2">🔍 Buscar receta</label>
+            <input type="text" id="buscador-recetas"
+                   placeholder="Escribe el nombre de la receta..."
+                   class="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
 
+        <!-- Selección de recetas -->
+        <div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">Selecciona recetas</h3>
+            <div id="recetas-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                {% for receta in form.fields.recetas.queryset %}
+                    <label class="block border rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition cursor-pointer bg-white relative receta-item">
+                        
+                        {% if receta.es_publica %}
+                            <span class="absolute top-2 left-2 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full z-10">Pública</span>
+                        {% endif %}
 
-        <div class="card p-3 mt-3">
-            <h4>Totales del plan</h4>
-            <div class="row">
-                <div class="col-md-6">
-                    <p><strong>Calorías:</strong> <span id="total-calorias">0.0</span> kcal</p>
-                    <p><strong>Proteínas:</strong> <span id="total-proteinas">0.0</span> g</p>
+                        {% if receta.imagen %}
+                            <img src="{{ receta.imagen.url }}" alt="{{ receta.titulo }}" class="w-full h-32 object-cover">
+                        {% else %}
+                            <div class="w-full h-32 flex items-center justify-center bg-gray-200 text-gray-500 text-2xl">
+                                📷
+                            </div>
+                        {% endif %}
+                        
+                        <div class="p-4 space-y-1">
+                            <div class="flex items-start justify-between">
+                                <strong class="text-gray-900 nombre-receta">{{ receta.titulo }}</strong>
+                                <input type="checkbox"
+                                       name="recetas"
+                                       value="{{ receta.id }}"
+                                       data-calorias="{{ receta.calorias_por_persona }}"
+                                       data-proteinas="{{ receta.proteinas_por_persona }}"
+                                       data-grasas="{{ receta.grasas_por_persona }}"
+                                       data-carbohidratos="{{ receta.carbohidratos_por_persona }}"
+                                       class="receta-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            </div>
+
+                            <p class="text-sm text-gray-600 mt-2">
+                                {{ receta.calorias_por_persona|floatformat:0 }} kcal
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                <span class="text-blue-600">P: {{ receta.proteinas_por_persona|floatformat:1 }}g</span> · 
+                                <span class="text-green-600">G: {{ receta.grasas_por_persona|floatformat:1 }}g</span> · 
+                                <span class="text-orange-600">C: {{ receta.carbohidratos_por_persona|floatformat:1 }}g</span>
+                            </p>
+                        </div>
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Platos personalizados -->
+        <div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">Añadir platos personalizados</h3>
+            <div id="platos-personalizados" class="space-y-4"></div>
+            
+            <button type="button" id="add-plato" class="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 transition">
+                ➕ Añadir plato
+            </button>
+        </div>
+
+        <!-- Totales -->
+        <div class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl shadow p-6">
+            <h4 class="text-lg font-bold text-gray-800 mb-4">Totales del Plan</h4>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <p class="text-sm text-gray-500">Calorías</p>
+                    <p class="text-xl font-semibold text-gray-800"><span id="total-calorias">0.0</span> kcal</p>
                 </div>
-                <div class="col-md-6">
-                    <p><strong>Grasas:</strong> <span id="total-grasas">0.0</span> g</p>
-                    <p><strong>Carbohidratos:</strong> <span id="total-carbohidratos">0.0</span> g</p>
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <p class="text-sm text-gray-500">Proteínas</p>
+                    <p class="text-xl font-semibold text-blue-600"><span id="total-proteinas">0.0</span> g</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <p class="text-sm text-gray-500">Grasas</p>
+                    <p class="text-xl font-semibold text-green-600"><span id="total-grasas">0.0</span> g</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <p class="text-sm text-gray-500">Carbohidratos</p>
+                    <p class="text-xl font-semibold text-orange-600"><span id="total-carbohidratos">0.0</span> g</p>
                 </div>
             </div>
-            <button type="submit" class="btn btn-success mt-3">
-                {% if form.instance.pk %}Actualizar{% else %}Guardar{% endif %} Plan
-            </button>
+
+            <!-- Botón -->
+            <div class="mt-6 text-center">
+    <button type="submit"
+            class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition duration-300">
+        {% if form.instance.pk %}Actualizar{% else %}Guardar{% endif %} Plan
+    </button>
+</div>
         </div>
     </form>
 </div>
 
 <script>
+/* === Filtrar recetas por nombre === */
+document.getElementById("buscador-recetas").addEventListener("input", function() {
+    let filtro = this.value.toLowerCase();
+    document.querySelectorAll(".receta-item").forEach(item => {
+        let nombre = item.querySelector(".nombre-receta").textContent.toLowerCase();
+        item.style.display = nombre.includes(filtro) ? "" : "none";
+    });
+});
+
+/* === Totales === */
 function actualizarTotales() {
-    const checkboxes = document.querySelectorAll('#recetas-list input[type="checkbox"]');
     let calorias = 0, proteinas = 0, grasas = 0, carbohidratos = 0;
 
-    checkboxes.forEach(cb => {
+    document.querySelectorAll('.receta-checkbox').forEach(cb => {
         if (cb.checked) {
-            calorias += parseFloat(cb.dataset.calorias) || 0;
-            proteinas += parseFloat(cb.dataset.proteinas) || 0;
-            grasas += parseFloat(cb.dataset.grasas) || 0;
-            carbohidratos += parseFloat(cb.dataset.carbohidratos) || 0;
+            let cantidad = cb.closest('.receta-item').querySelector('.cantidad')?.value || 1;
+            cantidad = parseFloat(cantidad) || 1;
+            calorias += (parseFloat(cb.dataset.calorias) || 0) * cantidad;
+            proteinas += (parseFloat(cb.dataset.proteinas) || 0) * cantidad;
+            grasas += (parseFloat(cb.dataset.grasas) || 0) * cantidad;
+            carbohidratos += (parseFloat(cb.dataset.carbohidratos) || 0) * cantidad;
         }
+    });
+
+    document.querySelectorAll('.plato-input').forEach(plato => {
+        let cantidad = plato.querySelector('.cantidad')?.value || 1;
+        cantidad = parseFloat(cantidad) || 1;
+        calorias += (parseFloat(plato.querySelector('.calorias').value) || 0) * cantidad;
+        proteinas += (parseFloat(plato.querySelector('.proteinas').value) || 0) * cantidad;
+        grasas += (parseFloat(plato.querySelector('.grasas').value) || 0) * cantidad;
+        carbohidratos += (parseFloat(plato.querySelector('.carbohidratos').value) || 0) * cantidad;
     });
 
     document.getElementById('total-calorias').textContent = calorias.toFixed(1);
@@ -75,8 +160,36 @@ function actualizarTotales() {
     document.getElementById('total-carbohidratos').textContent = carbohidratos.toFixed(1);
 }
 
-document.querySelectorAll('#recetas-list input[type="checkbox"]').forEach(cb => {
+document.querySelectorAll('.receta-checkbox').forEach(cb => {
     cb.addEventListener('change', actualizarTotales);
+});
+
+/* === Añadir platos personalizados === */
+document.getElementById("add-plato").addEventListener("click", function() {
+    const container = document.getElementById("platos-personalizados");
+    const div = document.createElement("div");
+    div.classList.add("grid", "grid-cols-6", "gap-2", "plato-input", "items-center");
+
+    div.innerHTML = `
+        <input type="text" name="plato_nombre[]" placeholder="Nombre" class="col-span-2 border border-gray-300 rounded-lg p-2">
+        <input type="number" name="plato_calorias[]" placeholder="kcal" step="0.1" class="calorias border border-gray-300 rounded-lg p-2">
+        <input type="number" name="plato_proteinas[]" placeholder="P (g)" step="0.1" class="proteinas border border-gray-300 rounded-lg p-2">
+        <input type="number" name="plato_grasas[]" placeholder="G (g)" step="0.1" class="grasas border border-gray-300 rounded-lg p-2">
+        <input type="number" name="plato_carbohidratos[]" placeholder="C (g)" step="0.1" class="carbohidratos border border-gray-300 rounded-lg p-2">
+        <input type="number" name="plato_cantidad[]" value="1" step="0.1" class="cantidad border border-gray-300 rounded-lg p-2 w-20">
+        <button type="button" class="eliminar bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">Eliminar</button>
+    `;
+
+    container.appendChild(div);
+
+    div.querySelectorAll("input").forEach(input => {
+        input.addEventListener("input", actualizarTotales);
+    });
+
+    div.querySelector(".eliminar").addEventListener("click", () => {
+        div.remove();
+        actualizarTotales();
+    });
 });
 
 actualizarTotales();

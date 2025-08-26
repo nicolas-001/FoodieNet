@@ -1,7 +1,8 @@
 from django import forms
-from .models import Receta, Comentario,PlanDiario
+from .models import Receta, Comentario,PlanDiario, PlatoPersonalizado
 from django.db import models
 from django.utils.safestring import mark_safe
+from taggit.forms import TagWidget
 
 
 class RecetaForm(forms.ModelForm):
@@ -18,7 +19,6 @@ class RecetaForm(forms.ModelForm):
             'dificultad',
             'porciones',
             'tags',
-              # ¡añádelo aquí!
         ]
         widgets = {
             'titulo': forms.TextInput(attrs={'class': 'form-control'}),
@@ -29,12 +29,22 @@ class RecetaForm(forms.ModelForm):
             'es_publica': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'tiempo_preparacion': forms.NumberInput(attrs={'class': 'form-control'}),
             'dificultad': forms.Select(attrs={'class': 'form-select'}),
-            'porciones': forms.NumberInput(attrs={'min': 1}),
-            'tags': forms.TextInput(attrs={
+            'porciones': forms.NumberInput(attrs={'min': 1, 'class': 'form-control'}),
+            'tags': TagWidget(attrs={
                 'class': 'form-control',
                 'placeholder': 'Ej: pasta, rápida, vegana',
             }),
         }
+class PlatoPersonalizadoForm(forms.ModelForm):
+    class Meta:
+        model = PlatoPersonalizado
+        fields = ["nombre", "calorias", "proteinas", "grasas", "carbohidratos"]
+        widgets = {
+            "nombre": forms.TextInput(attrs={"class": "w-full border rounded-lg p-2"}),
+            "calorias": forms.NumberInput(attrs={"step": "any", "class": "w-full border rounded-lg p-2"}),
+            "proteinas": forms.NumberInput(attrs={"step": "any", "class": "w-full border rounded-lg p-2"}),
+            "grasas": forms.NumberInput(attrs={"step": "any", "class": "w-full border rounded-lg p-2"}),
+            "carbohidratos": forms.NumberInput(attrs={"step": "any", "class": "w-full border rounded-lg p-2"}),}
 
 class ComentarioForm(forms.ModelForm):
     class Meta:

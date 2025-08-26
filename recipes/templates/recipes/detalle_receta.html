@@ -214,68 +214,78 @@
         });
     });
 
-    // Like + recomendaciones dinámicas
-    document.getElementById("form-like").addEventListener("submit", function(event) {
-      event.preventDefault();
+   // Like + recomendaciones dinámicas
+document.getElementById("form-like").addEventListener("submit", function(event) {
+  event.preventDefault();
 
-      const form = event.target;
-      const recetaId = "{{ receta.id }}";
-      const icon = document.getElementById("like-icon");
-      const count = document.getElementById("like-count");
+  const form = event.target;
+  const recetaId = "{{ receta.id }}";
+  const icon = document.getElementById("like-icon");
+  const count = document.getElementById("like-count");
 
-      fetch(form.action, {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": form.querySelector('[name=csrfmiddlewaretoken]').value,
-          "X-Requested-With": "XMLHttpRequest"
-        },
-        credentials: 'include'
-      })
-      .then(response => {
-        if (response.redirected) {
-          window.location.href = response.url;
-          return;
-        }
-        if (!response.ok) throw new Error("Error al dar like");
-        return response.json();
-      })
-      .then(data => {
-        if (icon && count) {
-          icon.textContent = data.liked ? "❤️" : "🤍";
-          count.textContent = data.total_likes;
-        } else {
-          console.warn("Elementos like no encontrados para actualizar");
-        }
+  fetch(form.action, {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": form.querySelector('[name=csrfmiddlewaretoken]').value,
+      "X-Requested-With": "XMLHttpRequest"
+    },
+    credentials: 'include'
+  })
+  .then(response => {
+    if (response.redirected) {
+      window.location.href = response.url;
+      return;
+    }
+    if (!response.ok) throw new Error("Error al dar like");
+    return response.json();
+  })
+  .then(data => {
+    if (icon && count) {
+      icon.textContent = data.liked ? "❤️" : "🤍";
+      count.textContent = data.total_likes;
+    } else {
+      console.warn("Elementos like no encontrados para actualizar");
+    }
 
-        return fetch(`/recomendaciones-dinamicas/${recetaId}/`);
-      })
-      .then(response => response.json())
-      .then(data => {
-        const contenedor = document.getElementById("recomendacionesDinamicas");
-contenedor.innerHTML = "<h3>🎯 Recomendaciones basadas en esta receta:</h3><ul style='list-style:none; padding-left:0;'>";
-data.recomendaciones.forEach(r => {
-  contenedor.innerHTML += `
-    <li style="margin-bottom: 12px;">
-      <a href="${r.url}" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
-        <img src="${r.imagen_url}" alt="${r.titulo}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
-        <div>
-          <div style="font-weight:bold; color:#333;">${r.titulo}</div>
-          <div style="font-size: 0.9em; color: #666;">👤 ${r.autor_username} &nbsp; 📅 ${r.fecha_creacion}</div>
-        </div>
-      </a>
-    </li>
-  `;
+    const contenedor = document.getElementById("recomendacionesDinamicas");
+
+    if (data.liked) {
+      // Solo si se da like → pedimos recomendaciones
+      return fetch(`/recomendaciones-dinamicas/${recetaId}/`)
+        .then(response => response.json())
+        .then(data => {
+          contenedor.innerHTML = `
+              <h3 class="text-xl font-bold mb-4">🎯 Recomendaciones basadas en esta receta:</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="recomendaciones-grid"></div>
+          `;
+          const grid = document.getElementById("recomendaciones-grid");
+
+          data.recomendaciones.forEach(r => {
+            grid.innerHTML += `
+              <div class="bg-white rounded-2xl shadow-lg overflow-hidden transform transition duration-300 hover:scale-105 hover:shadow-2xl">
+                <a href="${r.url}" class="block">
+                  <img src="${r.imagen_url}" alt="${r.titulo}" class="w-full h-48 object-cover">
+                  <div class="p-4">
+                    <h4 class="text-lg font-bold text-gray-800">${r.titulo}</h4>
+                    <p class="text-gray-600 mt-1 text-sm line-clamp-2">👤 ${r.autor_username} &nbsp; 📅 ${r.fecha_creacion}</p>
+                  </div>
+                </a>
+              </div>
+            `;
+          });
+        });
+    } else {
+      // Si se quita el like → limpiar recomendaciones
+      contenedor.innerHTML = "";
+    }
+  })
+  .catch(error => {
+    console.error(error);
+    alert("Hubo un error al procesar el like o las recomendaciones.");
+  });
 });
-contenedor.innerHTML += "</ul>";
 
-      })
-      .catch(error => {
-        console.error(error);
-        alert("Hubo un error al procesar el like o las recomendaciones.");
-      });
-    });
-
-    // Favorito toggle AJAX
+// Favorito toggle AJAX
 document.addEventListener("DOMContentLoaded", function () {
   const form = document.getElementById("form-favorito");
 
@@ -297,7 +307,6 @@ document.addEventListener("DOMContentLoaded", function () {
         .then((response) => response.json())
         .then((data) => {
           console.log("Favorito:", data);
-          // Actualiza el contenido del botón
           btn.innerHTML = (data.favorited ? "★ " : "☆ ") + `<span id="fav-count">${data.total_favoritos}</span>`;
         })
         .catch((error) => {
@@ -306,6 +315,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 });
+
 
   </script>
 {% endblock %}

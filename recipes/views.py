@@ -8,7 +8,7 @@ from django.conf import settings
 from django.views.decorators.http import require_GET, require_POST
 from django.utils.dateformat import DateFormat
 from datetime import date
-from .models import Receta, Like, Favorito, Comentario, PlanDiario
+from .models import Receta, Like, Favorito, Comentario, PlanDiario, PlatoPersonalizado
 from .forms import RecetaForm, ComentarioForm, PlanDiarioForm
 from users.models import Amistad
 from django.core.paginator import Paginator
@@ -29,7 +29,7 @@ from .helpers import get_recetas_dataframe, limpiar_ingredientes
 import nltk
 from nltk.corpus import stopwords
 
-def obtener_recetas_base_para_usuario(usuario, top_n=2):
+def obtener_recetas_base_para_usuario(usuario, top_n=3):
     liked_recetas = Receta.objects.filter(likes__user=usuario).order_by('-likes__creado')[:top_n]
     if liked_recetas.exists():
         return liked_recetas
@@ -43,22 +43,29 @@ def obtener_recetas_base_para_usuario(usuario, top_n=2):
 def lista_recetas(request):
     usuario = request.user
     recomendaciones = []
+    tipo_recomendacion = "popular"  # Valor por defecto
 
     if usuario.is_authenticated:
-        # Obtener recomendaciones generales (usando ML con favoritos y likes)
         recomendaciones = obtener_recomendaciones_generales(usuario)
 
-        # IDs de recetas recomendadas para excluirlas de la lista general
+        # Comprobamos cuántas recetas llegan
+        print(f"Recomendaciones (count): {len(recomendaciones)}")
+        for r in recomendaciones:
+            print(f" - {r.id}: {r.titulo}")
+
         recomendaciones_ids = [r.id for r in recomendaciones]
 
         amigos = usuario.perfil.obtener_amigos()
         recetas_qs = Receta.objects.filter(
             (Q(es_publica=True) | Q(es_publica=False, autor__in=amigos)) &
-            ~Q(id__in=recomendaciones_ids)  # Excluimos las recomendaciones
+            ~Q(id__in=recomendaciones_ids)
         ).select_related('autor__perfil').distinct().order_by('-fecha_creacion')
 
+        # Determinar tipo de recomendación según interacción del usuario
+        if Like.objects.filter(user=usuario).exists() or Favorito.objects.filter(user=usuario).exists():
+            tipo_recomendacion = "likes"
+
     else:
-        recomendaciones = []
         recetas_qs = Receta.objects.filter(es_publica=True).select_related('autor__perfil').order_by('-fecha_creacion')
 
     paginator = Paginator(recetas_qs, 10)
@@ -68,7 +75,9 @@ def lista_recetas(request):
     return render(request, 'recipes/lista_recetas.html', {
         'page_obj': page_obj,
         'recomendaciones': recomendaciones,
+        'tipo_recomendacion': tipo_recomendacion,
     })
+
 def detalle_receta(request, pk):
     receta = get_object_or_404(Receta.objects.select_related('autor__perfil'), pk=pk)
 
@@ -542,13 +551,13 @@ def obtener_recomendaciones_generales(user):
 
     if not recetas_ids:
         # Si no tiene likes ni favoritos, devolvemos las recetas más populares o recientes
-        return Receta.objects.filter(es_publica=True).order_by('-visitas')[:3]
+        return list(Receta.objects.filter(es_publica=True).order_by('-visitas')[:3])
 
     # 2. Obtener recetas del usuario para formar perfil
     recetas_usuario = Receta.objects.filter(id__in=recetas_ids)
     spanish_stopwords = stopwords.words('spanish')
+
     # 3. Crear corpus de texto para ML (tags + ingredientes)
-    # Concatenamos tags y ingredientes para cada receta
     def get_corpus(receta):
         tags = " ".join(tag.name for tag in receta.tags.all())
         ingredientes = receta.ingredientes or ""
@@ -580,10 +589,20 @@ def obtener_recomendaciones_generales(user):
     # 8. Ordenar por similitud descendente
     recetas_similares.sort(key=lambda x: x[1], reverse=True)
 
-    # 9. Devolver solo las top 3 recomendaciones
+    # 9. Tomamos las top recomendaciones similares
     recomendaciones = [r[0] for r in recetas_similares[:3]]
 
+    # 10. Si faltan para llegar a 3, rellenamos con populares
+    faltantes = 3 - len(recomendaciones)
+    if faltantes > 0:
+        recetas_resto = Receta.objects.filter(es_publica=True).exclude(
+            id__in=recetas_ids + [r.id for r in recomendaciones]
+        ).order_by('-visitas')[:faltantes]
+        recomendaciones.extend(list(recetas_resto))
+
     return recomendaciones
+
+
 
 @login_required
 def crear_plan_diario(request):
@@ -594,12 +613,32 @@ def crear_plan_diario(request):
             plan.usuario = request.user
             plan.save()
             form.save_m2m()
-            plan.calcular_totales()  # recalcular totales
+
+            # Guardar platos personalizados
+            nombres = request.POST.getlist("plato_nombre[]")
+            calorias = request.POST.getlist("plato_calorias[]")
+            proteinas = request.POST.getlist("plato_proteinas[]")
+            grasas = request.POST.getlist("plato_grasas[]")
+            carbohidratos = request.POST.getlist("plato_carbohidratos[]")
+
+            for i in range(len(nombres)):
+                if nombres[i].strip():  # evitar vacíos
+                    PlatoPersonalizado.objects.create(
+                        plan=plan,  # <--- asignar plan
+                        nombre=nombres[i],
+                        calorias=float(calorias[i]) if calorias[i] else 0,
+                        proteinas=float(proteinas[i]) if proteinas[i] else 0,
+                        grasas=float(grasas[i]) if grasas[i] else 0,
+                        carbohidratos=float(carbohidratos[i]) if carbohidratos[i] else 0,
+                    )
+
+            plan.calcular_totales()  # recalcular totales con recetas + platos personalizados
             return redirect('listar_planes_diarios')
     else:
         form = PlanDiarioForm(usuario=request.user)
 
     return render(request, 'recipes/crear_plan_diario.html', {'form': form})
+
 
 
 

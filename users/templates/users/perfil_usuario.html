@@ -1,56 +1,70 @@
 {% extends "base.html" %}
+{% load static %}
+{% load recetas_extras %}
 
 {% block title %}Perfil de {{ otro.username }} – FoodieNet{% endblock %}
 
 {% block content %}
-<div class="container my-4">
-  <h2 class="mb-4">Perfil de {{ otro.username }}</h2>
+<div class="container mx-auto my-8 px-4">
 
-  <div class="d-flex align-items-center gap-3 mb-4">
-    <img src="{{ perfil_otro.foto.url }}" 
-         alt="Foto de {{ otro.username }}" 
-         width="100" height="100" 
-         class="rounded-circle"
-         style="object-fit: cover;">
-    <div>
-      <p class="mb-1"><strong>Biografía:</strong> {{ perfil_otro.biografia|default:"(sin biografía)" }}</p>
+  <!-- Contenedor perfil -->
+  <h2 class="text-3xl font-bold mb-6 text-gray-900">Perfil de {{ otro.username }}</h2>
+
+  <div class="bg-white rounded-xl p-6 shadow-lg flex flex-col md:flex-row items-center md:items-start gap-6">
+
+    <!-- Foto -->
+    {% if perfil_otro.foto %}
+      <img src="{{ perfil_otro.foto.url }}" 
+           alt="Foto de {{ otro.username }}" 
+           class="w-24 h-24 rounded-full object-cover border-2 border-gray-300 shadow-md">
+    {% else %}
+      <img src="{% static 'perfiles/default.jpeg' %}" 
+           alt="Foto de perfil por defecto" 
+           class="w-24 h-24 rounded-full object-cover border-2 border-gray-300 shadow-md">
+    {% endif %}
+
+    <!-- Información -->
+    <div class="flex-1 text-gray-900">
+      <p class="mb-2"><strong>Biografía:</strong> {{ perfil_otro.biografia|default:"(sin biografía)" }}</p>
 
       <input type="hidden" id="csrf-token-input" value="{{ csrf_token }}">
 
-      <div id="solicitud-container">
-  {% if es_amigo %}
-    <button id="btn-borrar-amigo"
+      <div id="solicitud-container" class="mt-2 space-x-2">
+        {% if es_amigo %}
+          <button id="btn-borrar-amigo"
             type="button"
-            class="btn btn-danger btn-sm mt-2"
+            class="bg-red-500 hover:bg-red-600 text-white text-sm px-4 py-2 rounded-lg flex items-center gap-2 font-semibold shadow-md hover:shadow-lg active:scale-95 transition-all duration-150"
             data-username="{{ otro.username }}"
             data-url="{% url 'users:borrar_amigo' otro.username %}">
-      <i class="bi bi-person-x-fill"></i> Borrar amigo
-    </button>
+            Borrar amigo
+          </button>
 
-  {% elif solicitud_pendiente %}
-    <button id="btn-cancelar-solicitud"
+        {% elif solicitud_pendiente %}
+          <button id="btn-cancelar-solicitud"
             type="button"
-            class="btn btn-secondary btn-sm mt-2"
+            class="bg-gray-500 hover:bg-gray-600 text-white text-sm px-4 py-2 rounded-lg flex items-center gap-2 font-semibold shadow-md hover:shadow-lg active:scale-95 transition-all duration-150"
             data-username="{{ otro.username }}"
-            data-url="{% url 'users:cancelar_solicitud' otro.username %}">
-      <i class="bi bi-x-circle-fill"></i> Cancelar solicitud
-    </button>
+            data-url-cancelar="{% url 'users:cancelar_solicitud' otro.username %}">
+            Cancelar solicitud
+          </button>
 
-  {% elif request.user != otro and request.user.is_authenticated %}
-    <button id="btn-enviar-solicitud"
+        {% elif request.user != otro and request.user.is_authenticated %}
+          <button id="btn-enviar-solicitud"
             type="button"
-            class="btn btn-primary btn-sm mt-2"
+            class="mt-2 px-5 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg active:scale-95 transition-transform duration-150 flex items-center gap-2"
             data-username="{{ otro.username }}"
             data-url="{% url 'users:enviar_solicitud' otro.username %}">
-      <i class="bi bi-person-plus-fill"></i> Enviar solicitud de amistad
-    </button>
-  {% endif %}
-</div>
+            <i class="bi bi-person-plus-fill"></i>
+            Enviar solicitud de amistad
+          </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 
-
-      <div id="recomendaciones_after_like" style="margin-top: 12px;"></div>
-      <div id="debug-log" class="mt-3 p-2 bg-light border rounded small" style="display: none;"; max-height:220px; overflow:auto;"></div>
-
+  <!-- Recomendaciones y debug fuera del contenedor -->
+  <div id="recomendaciones_after_like" class="mt-4"></div>
+  
       <!-- SCRIPT INLINE -->
 <script>
 (function(){
@@ -103,13 +117,13 @@
     const urlCancelar = buildCancelarUrl(username);
     return `
       <button id="btn-enviar-solicitud"
-              type="button"
-              class="btn btn-primary btn-sm mt-2"
-              data-username="${username}"
-              data-url-enviar="${urlEnviar}"
-              data-url-cancelar="${urlCancelar}">
-        <i class="bi bi-person-plus-fill"></i> Enviar solicitud de amistad
-      </button>
+        type="button"
+        class="mt-2 px-5 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg active:scale-95 transition-transform duration-150 flex items-center gap-2"
+        data-username="${username}"
+        data-url-enviar="${urlEnviar}"
+        data-url-cancelar="${urlCancelar}">
+  <i class="bi bi-person-plus-fill"></i> Enviar solicitud de amistad
+</button>
     `;
   }
 
@@ -117,24 +131,24 @@
     const urlCancelar = buildCancelarUrl(username);
     return `
       <button id="btn-cancelar-solicitud"
-              type="button"
-              class="btn btn-secondary btn-sm mt-2"
-              data-username="${username}"
-              data-url-cancelar="${urlCancelar}">
-        <i class="bi bi-x-circle-fill"></i> Cancelar solicitud
-      </button>
+        type="button"
+        class="mt-2 px-5 py-2 rounded-lg bg-gray-500 text-white font-semibold shadow-md hover:bg-gray-600 hover:shadow-lg active:scale-95 transition-transform duration-150 flex items-center gap-2"
+        data-username="${username}"
+        data-url-cancelar="${urlCancelar}">
+  <i class="bi bi-x-circle-fill"></i> Cancelar solicitud
+</button>
     `;
   }
 function crearBotonBorrarAmigo(username){
   const url = `/users/borrar-amigo/${encodeURIComponent(username)}/`;
   return `
     <button id="btn-borrar-amigo"
-            type="button"
-            class="btn btn-danger btn-sm mt-2"
-            data-username="${username}"
-            data-url="${url}">
-      <i class="bi bi-person-dash-fill"></i> Borrar amigo
-    </button>
+        type="button"
+        class="mt-2 px-5 py-2 rounded-lg bg-red-600 text-white font-semibold shadow-md hover:bg-red-700 hover:shadow-lg active:scale-95 transition-transform duration-150 flex items-center gap-2"
+        data-username="${username}"
+        data-url="${url}">
+  <i class="bi bi-person-dash-fill"></i> Borrar amigo
+</button>
   `;
 }
 
@@ -222,43 +236,51 @@ async function borrarAmigo(url, btn){
       const contRec = document.getElementById('recomendaciones_after_like');
       if (contRec) {
         contRec.innerHTML = '';
+
         const recs = Array.isArray(data.recomendaciones) ? data.recomendaciones : [];
+
         if (recs.length) {
           const wrapper = document.createElement('div');
-          wrapper.classList.add('mt-3');
+          wrapper.classList.add('mt-4');
+
           const h = document.createElement('h5');
           h.textContent = 'Quizá también te interesen estas cuentas';
+          h.classList.add('text-lg', 'font-semibold', 'mb-3');
           wrapper.appendChild(h);
 
           const row = document.createElement('div');
-          row.className = 'd-flex gap-3 flex-wrap';
+          row.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4';
 
           recs.forEach(u => {
             const card = document.createElement('div');
-            card.className = 'd-flex align-items-center gap-2 border rounded p-2';
-            card.style.minWidth = '220px';
+            card.className = 'flex flex-col items-center bg-white rounded-xl shadow hover:shadow-lg transition-shadow p-4 cursor-pointer';
 
             const img = document.createElement('img');
             img.src = u.foto_url;
-            img.width = 48;
-            img.height = 48;
-            img.style.objectFit = 'cover';
-            img.className = 'rounded-circle';
+            img.width = 72;
+            img.height = 72;
+            img.className = 'rounded-full object-cover border-2 border-gray-200 mb-2';
 
-            const txt = document.createElement('div');
-            txt.innerHTML = `<a href="${u.perfil_url}" class="fw-bold text-dark" style="text-decoration:none;">${u.username}</a>`;
+            const a = document.createElement('a');
+            a.href = u.perfil_url;
+            a.textContent = u.username;
+            a.className = 'font-semibold text-gray-800 hover:text-blue-500 text-center';
 
             card.appendChild(img);
-            card.appendChild(txt);
+            card.appendChild(a);
             row.appendChild(card);
           });
 
           wrapper.appendChild(row);
           contRec.appendChild(wrapper);
         } else {
-          contRec.innerHTML = '<p class="text-muted small">No se han encontrado sugerencias por ahora.</p>';
+          const p = document.createElement('p');
+          p.textContent = 'No se han encontrado sugerencias por ahora.';
+          p.className = 'text-gray-500 text-sm';
+          contRec.appendChild(p);
         }
       }
+
     } catch (err) {
       alert('Error en la conexión.');
     } finally {
@@ -354,47 +376,49 @@ async function borrarAmigo(url, btn){
     </div>
   </div>
 
-  <h3 class="mb-3">Recetas de {{ otro.username }}</h3>
+ <!-- Recetas del usuario -->
+<!-- Recetas del usuario -->
+<h2 class="text-2xl font-semibold text-gray-900 mt-8">Recetas de {{ otro.username }}</h2>
 
   {% if recetas_publicas or es_amigo and recetas_privadas %}
-    <div class="row">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
       {% for r in recetas_publicas %}
-        <div class="col-md-6 mb-3">
-          <div class="card h-100">
-            {% if r.imagen %}
-              <img src="{{ r.imagen.url }}" class="card-img-top" alt="{{ r.titulo }}" style="object-fit: cover; height: 200px;">
-            {% endif %}
-            <div class="card-body">
-              <h5 class="card-title mb-2">
-                <a href="{% url 'detalle_receta' r.pk %}" class="text-decoration-none text-dark">{{ r.titulo }}</a>
-              </h5>
-              <span class="badge bg-success">Pública</span>
-            </div>
+        <div class="border rounded shadow overflow-hidden bg-white">
+          {% if r.imagen %}
+            <img src="{{ r.imagen.url }}" alt="{{ r.titulo }}" class="w-full h-48 object-cover">
+          {% endif %}
+          <div class="p-4">
+            <h5 class="font-semibold text-lg mb-1">
+              <a href="{% url 'detalle_receta' r.pk %}" class="hover:underline text-gray-900">{{ r.titulo }}</a>
+            </h5>
+            <span class="inline-block mt-1 px-2 py-1 text-sm rounded {{ r.es_publica|badge_class }}">
+              {{ r.es_publica|badge_label }}
+            </span>
           </div>
         </div>
       {% endfor %}
 
       {% if es_amigo %}
         {% for r in recetas_privadas %}
-          <div class="col-md-6 mb-3">
-            <div class="card h-100 border-warning">
-              {% if r.imagen %}
-                <img src="{{ r.imagen.url }}" class="card-img-top" alt="{{ r.titulo }}" style="object-fit: cover; height: 200px;">
-              {% endif %}
-              <div class="card-body">
-                <h5 class="card-title mb-2">
-                  <a href="{% url 'detalle_receta' r.pk %}" class="text-decoration-none text-dark">{{ r.titulo }}</a>
-                </h5>
-                <span class="badge bg-warning text-dark">Privada</span>
-              </div>
+          <div class="border rounded shadow overflow-hidden bg-white border-yellow-400">
+            {% if r.imagen %}
+              <img src="{{ r.imagen.url }}" alt="{{ r.titulo }}" class="w-full h-48 object-cover">
+            {% endif %}
+            <div class="p-4">
+              <h5 class="font-semibold text-lg mb-1">
+                <a href="{% url 'detalle_receta' r.pk %}" class="hover:underline text-gray-900">{{ r.titulo }}</a>
+              </h5>
+              <span class="inline-block mt-1 px-2 py-1 text-sm rounded bg-yellow-400 text-gray-800">
+                Privada
+              </span>
             </div>
           </div>
         {% endfor %}
       {% endif %}
     </div>
   {% else %}
-    <p class="text-muted">No hay recetas disponibles para mostrar.</p>
+    <p class="text-gray-800 mt-2">No hay recetas disponibles para mostrar.</p>
   {% endif %}
 
-</div>
+
 {% endblock %}

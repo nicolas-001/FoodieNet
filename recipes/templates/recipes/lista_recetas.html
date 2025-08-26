@@ -7,32 +7,43 @@
   <div class="bg-white border border-indigo-100 shadow-lg rounded-2xl p-6">
     <h2 class="text-2xl font-bold text-indigo-700 flex items-center gap-2 mb-6">
       🎯 Recomendaciones para ti
-    </h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {% for receta in recomendaciones %}
-      <div class="bg-white rounded-xl shadow-md hover:shadow-xl transition overflow-hidden">
-        {% if receta.imagen %}
-        <img 
-          src="{{ receta.imagen.url }}" 
-          alt="{{ receta.titulo }}"
-          class="w-full h-56 object-cover"
-        >
-        {% endif %}
-        <div class="p-4">
-          <h3 class="text-lg font-semibold text-gray-800 mb-1">
-            <a href="{% url 'detalle_receta' receta.pk %}" class="hover:text-indigo-600 transition">
-              {{ receta.titulo }}
-            </a>
-          </h3>
-          <p class="text-sm text-gray-500 mb-2">Basado en tus últimos likes</p>
-          <p class="text-gray-600 text-sm">{{ receta.descripcion|truncatewords:20 }}</p>
-        </div>
+    </h2><div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+     {% for receta in recomendaciones %}
+  <div class="bg-white rounded-xl shadow-md hover:shadow-xl transition overflow-hidden min-h-[350px]">
+    {% if receta.imagen %}
+      <img 
+        src="{{ receta.imagen.url }}" 
+        alt="{{ receta.titulo }}"
+        class="w-full h-56 object-cover"
+      >
+    {% else %}
+      <div class="w-full h-56 flex items-center justify-center bg-gray-200 text-gray-500 text-4xl">
+        📷
       </div>
-      {% endfor %}
+    {% endif %}
+    <div class="p-4">
+      <h3 class="text-lg font-semibold text-gray-800 mb-1">
+        <a href="{% url 'detalle_receta' receta.pk %}" class="hover:text-indigo-600 transition">
+          {{ receta.titulo }}
+        </a>
+      </h3>
+      <p class="text-sm text-gray-500 mb-2">
+        {% if tipo_recomendacion == "likes" %}
+          Basado en tus últimos likes
+        {% else %}
+          Recetas populares para ti
+        {% endif %}
+      </p>
+      <p class="text-gray-600 text-sm">{{ receta.descripcion|truncatewords:20 }}</p>
+    </div>
+  </div>
+{% endfor %}
+
     </div>
   </div>
 </section>
 {% endif %}
+
 
 <div class="container mx-auto px-4 my-10">
   <div class="flex justify-between items-center mb-8">
@@ -62,9 +73,18 @@
             {{ receta.titulo }}
           </a>
           {% if receta.es_publica %}
-            <span class="text-emerald-500 text-lg" title="Receta pública">🌍</span>
+            <span class="inline-block bg-green-500 text-white text-sm px-3 py-1 rounded-full font-semibold shadow-lg">
+  Pública
+</span>
+
+
+
+
+
           {% else %}
-            <span class="text-rose-500 text-lg" title="Receta privada">🔒</span>
+            <span class="inline-block bg-red-500 text-white rounded-full" style="font-size:0.625rem; padding:0.15rem 0.3rem;">
+  Privada
+</span>
           {% endif %}
         </h3>
         <div class="flex items-center gap-3 mb-3">

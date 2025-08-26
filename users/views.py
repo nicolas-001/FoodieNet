@@ -334,7 +334,7 @@ def enviar_solicitud(request, username):
             'username': u.username,
             'full_name': getattr(u, 'get_full_name', lambda: "")() or "",
             'perfil_url': f"/users/{u.username}/",  # Ajusta según tus URLs reales
-            'foto_url': getattr(getattr(u, 'perfil', None), 'foto.url', '/static/perfiles/default.jpeg'),
+            'foto_url': getattr(getattr(u, 'perfil', None), 'foto.url', '/media/perfiles/default.jpeg'),
         })
 
     return JsonResponse({

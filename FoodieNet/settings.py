@@ -37,7 +37,8 @@ INSTALLED_APPS = [
     'taggit',
     'theme',
     'tailwind',
-    'django_browser_reload',  
+    'django_browser_reload',
+    'widget_tweaks',  
     ]
 
 TAILWIND_APP_NAME = "theme"

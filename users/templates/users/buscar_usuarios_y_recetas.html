@@ -3,139 +3,129 @@
 {% block title %}Buscar usuarios y recetas – FoodieNet{% endblock %}
 
 {% block content %}
-  <div class="buscar-container">
-    <h1 class="buscar-titulo">Buscar usuarios y recetas</h1>
+<div class="max-w-4xl mx-auto p-6">
+  <h1 class="text-3xl font-bold mb-6 text-center">🔍 Buscar usuarios y recetas</h1>
 
-    <form method="get" class="buscar-form mb-4 d-flex gap-2">
-      <input type="text" name="query" value="{{ query }}" placeholder="Buscar usuarios y recetas..." class="form-control" />
-      <button type="submit" class="btn btn-primary">Buscar</button>
-    </form>
+  <!-- FORMULARIO DE BÚSQUEDA -->
+  <form method="get" class="flex gap-2 mb-8">
+    <input 
+      type="text" 
+      name="query" 
+      value="{{ query }}" 
+      placeholder="Buscar usuarios y recetas..." 
+      class="flex-1 px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-400 focus:outline-none"
+    />
+    <button 
+      type="submit" 
+      class="px-4 py-2 bg-green-500 text-white rounded-xl shadow hover:bg-green-600 transition"
+    >
+      Buscar
+    </button>
+  </form>
 
-    <!-- RESULTADOS USUARIOS -->
-    <h2>Usuarios</h2>
-    {% if page_obj_usuarios and page_obj_usuarios.object_list %}
-      <ul class="lista-usuarios list-unstyled">
-        {% for u in page_obj_usuarios.object_list %}
-          <li class="usuario-item d-flex align-items-center gap-3 mb-3">
-            <a href="{% url 'users:perfil_usuario' u.username %}" class="d-flex align-items-center gap-3 text-decoration-none text-dark">
-              <img src="{{ u.perfil.foto.url }}" 
-                   alt="Foto de {{ u.username }}" 
-                   width="50" height="50" 
-                   class="rounded-circle"
-                   style="object-fit: cover;">
-              <div>
-                <strong>{{ u.username }}</strong><br>
-                <small class="text-muted">
-                  {{ u.perfil.biografia|default:"(sin biografía)"|truncatechars:60 }}
-                </small>
-              </div>
-            </a>
+  <!-- RESULTADOS USUARIOS -->
+  <h2 class="text-2xl font-semibold mb-4">👥 Usuarios</h2>
+  {% if page_obj_usuarios and page_obj_usuarios.object_list %}
+    <ul class="space-y-4">
+      {% for u in page_obj_usuarios.object_list %}
+        <li class="flex items-center gap-4 p-4 bg-white rounded-xl shadow hover:shadow-md transition">
+          <a href="{% url 'users:perfil_usuario' u.username %}" class="flex items-center gap-4 w-full">
+            <img src="{{ u.perfil.foto.url }}" 
+                 alt="Foto de {{ u.username }}" 
+                 class="w-12 h-12 rounded-full object-cover border" />
+            <div>
+              <p class="font-semibold text-gray-900">{{ u.username }}</p>
+              <p class="text-sm text-gray-600">
+                {{ u.perfil.biografia|default:"(sin biografía)"|truncatechars:60 }}
+              </p>
+            </div>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <!-- Paginación usuarios -->
+    <div class="flex justify-center mt-6">
+      <ul class="flex items-center gap-2">
+        {% if page_obj_usuarios.has_previous %}
+          <li>
+            <a href="?query={{ query }}&page_usuarios={{ page_obj_usuarios.previous_page_number }}&page_recetas={{ page_obj_recetas.number }}" 
+               class="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300">&laquo;</a>
           </li>
+        {% endif %}
+
+        {% for num in page_obj_usuarios.paginator.page_range %}
+          {% if num == page_obj_usuarios.number %}
+            <li><span class="px-3 py-1 rounded-lg bg-green-500 text-white">{{ num }}</span></li>
+          {% elif num >= page_obj_usuarios.number|add:'-2' and num <= page_obj_usuarios.number|add:'2' %}
+            <li>
+              <a href="?query={{ query }}&page_usuarios={{ num }}&page_recetas={{ page_obj_recetas.number }}" 
+                 class="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300">{{ num }}</a>
+            </li>
+          {% endif %}
         {% endfor %}
-      </ul>
 
-      <!-- Paginación usuarios -->
-      <nav aria-label="Navegación de páginas usuarios">
-        <ul class="pagination justify-content-center">
-          {% if page_obj_usuarios.has_previous %}
-            <li class="page-item">
-              <a class="page-link" href="?query={{ query }}&page_usuarios={{ page_obj_usuarios.previous_page_number }}&page_recetas={{ page_obj_recetas.number }}" aria-label="Anterior usuarios">
-                <span aria-hidden="true">&laquo;</span>
-              </a>
-            </li>
-          {% else %}
-            <li class="page-item disabled">
-              <span class="page-link">&laquo;</span>
-            </li>
-          {% endif %}
-
-          {% for num in page_obj_usuarios.paginator.page_range %}
-            {% if num == page_obj_usuarios.number %}
-              <li class="page-item active" aria-current="page">
-                <span class="page-link">{{ num }}</span>
-              </li>
-            {% elif num >= page_obj_usuarios.number|add:'-2' and num <= page_obj_usuarios.number|add:'2' %}
-              <li class="page-item">
-                <a class="page-link" href="?query={{ query }}&page_usuarios={{ num }}&page_recetas={{ page_obj_recetas.number }}">{{ num }}</a>
-              </li>
-            {% endif %}
-          {% endfor %}
-
-          {% if page_obj_usuarios.has_next %}
-            <li class="page-item">
-              <a class="page-link" href="?query={{ query }}&page_usuarios={{ page_obj_usuarios.next_page_number }}&page_recetas={{ page_obj_recetas.number }}" aria-label="Siguiente usuarios">
-                <span aria-hidden="true">&raquo;</span>
-              </a>
-            </li>
-          {% else %}
-            <li class="page-item disabled">
-              <span class="page-link">&raquo;</span>
-            </li>
-          {% endif %}
-        </ul>
-      </nav>
-    {% else %}
-      <p>No se encontraron usuarios.</p>
-    {% endif %}
-
-    <hr>
-
-    <!-- RESULTADOS RECETAS -->
-    <h2>Recetas</h2>
-    {% if page_obj_recetas and page_obj_recetas.object_list %}
-      <ul class="lista-recetas list-unstyled">
-        {% for receta in page_obj_recetas.object_list %}
-          <li class="receta-item mb-3">
-            <a href="{% url 'detalle_receta' receta.pk %}" class="text-decoration-none">
-              <strong>{{ receta.titulo }}</strong>
-            </a>
-            <p class="text-muted mb-0">{{ receta.descripcion|default:"Sin descripción"|truncatechars:100 }}</p>
+        {% if page_obj_usuarios.has_next %}
+          <li>
+            <a href="?query={{ query }}&page_usuarios={{ page_obj_usuarios.next_page_number }}&page_recetas={{ page_obj_recetas.number }}" 
+               class="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300">&raquo;</a>
           </li>
-        {% endfor %}
+        {% endif %}
       </ul>
+    </div>
+  {% else %}
+    <p class="text-gray-600 italic">No se encontraron usuarios.</p>
+  {% endif %}
 
-      <!-- Paginación recetas -->
-      <nav aria-label="Navegación de páginas recetas">
-        <ul class="pagination justify-content-center">
-          {% if page_obj_recetas.has_previous %}
-            <li class="page-item">
-              <a class="page-link" href="?query={{ query }}&page_usuarios={{ page_obj_usuarios.number }}&page_recetas={{ page_obj_recetas.previous_page_number }}" aria-label="Anterior recetas">
-                <span aria-hidden="true">&laquo;</span>
-              </a>
-            </li>
-          {% else %}
-            <li class="page-item disabled">
-              <span class="page-link">&laquo;</span>
+  <hr class="my-8 border-gray-300">
+
+  <!-- RESULTADOS RECETAS -->
+  <h2 class="text-2xl font-semibold mb-4">🍲 Recetas</h2>
+  {% if page_obj_recetas and page_obj_recetas.object_list %}
+    <ul class="space-y-4">
+      {% for receta in page_obj_recetas.object_list %}
+        <li class="p-4 bg-white rounded-xl shadow hover:shadow-md transition">
+          <a href="{% url 'detalle_receta' receta.pk %}" class="block text-lg font-semibold text-green-600 hover:underline">
+            {{ receta.titulo }}
+          </a>
+          <p class="text-sm text-gray-600 mt-1">
+            {{ receta.descripcion|default:"Sin descripción"|truncatechars:100 }}
+          </p>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <!-- Paginación recetas -->
+    <div class="flex justify-center mt-6">
+      <ul class="flex items-center gap-2">
+        {% if page_obj_recetas.has_previous %}
+          <li>
+            <a href="?query={{ query }}&page_usuarios={{ page_obj_usuarios.number }}&page_recetas={{ page_obj_recetas.previous_page_number }}" 
+               class="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300">&laquo;</a>
+          </li>
+        {% endif %}
+
+        {% for num in page_obj_recetas.paginator.page_range %}
+          {% if num == page_obj_recetas.number %}
+            <li><span class="px-3 py-1 rounded-lg bg-green-500 text-white">{{ num }}</span></li>
+          {% elif num >= page_obj_recetas.number|add:'-2' and num <= page_obj_recetas.number|add:'2' %}
+            <li>
+              <a href="?query={{ query }}&page_usuarios={{ page_obj_usuarios.number }}&page_recetas={{ num }}" 
+                 class="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300">{{ num }}</a>
             </li>
           {% endif %}
+        {% endfor %}
 
-          {% for num in page_obj_recetas.paginator.page_range %}
-            {% if num == page_obj_recetas.number %}
-              <li class="page-item active" aria-current="page">
-                <span class="page-link">{{ num }}</span>
-              </li>
-            {% elif num >= page_obj_recetas.number|add:'-2' and num <= page_obj_recetas.number|add:'2' %}
-              <li class="page-item">
-                <a class="page-link" href="?query={{ query }}&page_usuarios={{ page_obj_usuarios.number }}&page_recetas={{ num }}">{{ num }}</a>
-              </li>
-            {% endif %}
-          {% endfor %}
-
-          {% if page_obj_recetas.has_next %}
-            <li class="page-item">
-              <a class="page-link" href="?query={{ query }}&page_usuarios={{ page_obj_usuarios.number }}&page_recetas={{ page_obj_recetas.next_page_number }}" aria-label="Siguiente recetas">
-                <span aria-hidden="true">&raquo;</span>
-              </a>
-            </li>
-          {% else %}
-            <li class="page-item disabled">
-              <span class="page-link">&raquo;</span>
-            </li>
-          {% endif %}
-        </ul>
-      </nav>
-    {% else %}
-      <p>No se encontraron recetas.</p>
-    {% endif %}
-  </div>
+        {% if page_obj_recetas.has_next %}
+          <li>
+            <a href="?query={{ query }}&page_usuarios={{ page_obj_usuarios.number }}&page_recetas={{ page_obj_recetas.next_page_number }}" 
+               class="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300">&raquo;</a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  {% else %}
+    <p class="text-gray-600 italic">No se encontraron recetas.</p>
+  {% endif %}
+</div>
 {% endblock %}

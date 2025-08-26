@@ -110,13 +110,23 @@ class Comentario(models.Model):
 
     def __str__(self):
         return f"{self.autor.username} en {self.receta.titulo}"
+class PlatoPersonalizado(models.Model):
+    plan = models.ForeignKey("PlanDiario", on_delete=models.CASCADE, related_name="platos_personalizados")
+    nombre = models.CharField(max_length=255)
+    calorias = models.FloatField()
+    proteinas = models.FloatField()
+    grasas = models.FloatField()
+    carbohidratos = models.FloatField()
+
+    def __str__(self):
+        return f"{self.nombre} ({self.calorias} kcal)"
 
 class PlanDiario(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="planes_diarios")
     nombre = models.CharField(max_length=100, help_text="Nombre del plan, por ejemplo 'Lunes', 'Martes', etc.")
     fecha = models.DateField(auto_now_add=True)  # el día del plan
     recetas = models.ManyToManyField(Receta, related_name="planes")  # varias recetas por día
-    
+
     # Totales automáticos
     calorias_totales = models.FloatField(default=0)
     proteinas_totales = models.FloatField(default=0)
@@ -124,13 +134,26 @@ class PlanDiario(models.Model):
     carbohidratos_totales = models.FloatField(default=0)
 
     def calcular_totales(self):
-        """Suma los valores nutricionales por persona de todas las recetas del plan"""
-        self.calorias_totales = sum(r.calorias_por_persona or 0 for r in self.recetas.all())
-        self.proteinas_totales = sum((r.proteinas / r.porciones) if r.proteinas else 0 for r in self.recetas.all())
-        self.grasas_totales = sum((r.grasas / r.porciones) if r.grasas else 0 for r in self.recetas.all())
-        self.carbohidratos_totales = sum((r.carbohidratos / r.porciones) if r.carbohidratos else 0 for r in self.recetas.all())
-        self.save()
+        """Suma los valores nutricionales de todas las recetas + platos personalizados"""
+        calorias = sum(r.calorias_por_persona or 0 for r in self.recetas.all())
+        proteinas = sum((r.proteinas / r.porciones) if r.proteinas else 0 for r in self.recetas.all())
+        grasas = sum((r.grasas / r.porciones) if r.grasas else 0 for r in self.recetas.all())
+        carbohidratos = sum((r.carbohidratos / r.porciones) if r.carbohidratos else 0 for r in self.recetas.all())
 
+        # 🔹 añadimos los platos personalizados
+        for plato in self.platos_personalizados.all():
+            calorias += plato.calorias
+            proteinas += plato.proteinas
+            grasas += plato.grasas
+            carbohidratos += plato.carbohidratos
+
+        self.calorias_totales = calorias
+        self.proteinas_totales = proteinas
+        self.grasas_totales = grasas
+        self.carbohidratos_totales = carbohidratos
+        self.save()
 
     def __str__(self):
         return f"{self.nombre} - {self.usuario.username} ({self.fecha})"
+    
+
