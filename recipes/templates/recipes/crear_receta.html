@@ -2,76 +2,48 @@
 {% load form_tags %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto my-8 p-4">
-  <div class="bg-white shadow-md rounded-xl overflow-hidden">
-    <div class="bg-blue-600 text-white px-6 py-4">
-      <h2 class="text-xl font-semibold">Crear Nueva Receta</h2>
+<div class="relative z-20 flex justify-center mt-12 mb-12">
+  <div class="w-full max-w-3xl bg-white rounded-3xl shadow-2xl p-8">
+    
+    <!-- Header del formulario -->
+    <div class="mb-6 text-center">
+      <h2 class="text-3xl font-extrabold text-gray-800 flex items-center justify-center gap-2">
+        ✨ Crear Nueva Receta
+      </h2>
+      <p class="text-gray-500 mt-2 text-lg">
+        Comparte tus recetas con la comunidad y deja que todos las descubran
+      </p>
     </div>
-    <div class="p-6">
-      <form method="POST" enctype="multipart/form-data" class="space-y-4">
-        {% csrf_token %}
 
+    <!-- Formulario -->
+    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+      {% csrf_token %}
+
+      {% for field in form %}
         <div>
-          <label for="{{ form.titulo.id_for_label }}" class="block text-gray-700 font-medium mb-1">Título</label>
-          {{ form.titulo|add_class:"w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+          <label for="{{ field.id_for_label }}" class="block text-gray-700 font-medium mb-1">{{ field.label }}</label>
+          {{ field|add_class:"w-full border border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm hover:shadow-md transition" }}
+          {% if field.help_text %}
+            <small class="text-gray-400">{{ field.help_text }}</small>
+          {% endif %}
+          {% for error in field.errors %}
+            <p class="text-red-500 text-sm">{{ error }}</p>
+          {% endfor %}
         </div>
+      {% endfor %}
 
-        <div>
-          <label for="{{ form.descripcion.id_for_label }}" class="block text-gray-700 font-medium mb-1">Descripción</label>
-          {{ form.descripcion|add_class:"w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
-        </div>
+      <div class="flex items-center space-x-2">
+        {{ form.es_publica|add_class:"h-5 w-5 text-blue-600 focus:ring-2 focus:ring-blue-500 rounded" }}
+        <label for="{{ form.es_publica.id_for_label }}" class="text-gray-700 font-medium">¿Es pública?</label>
+      </div>
 
-        <div>
-          <label for="{{ form.ingredientes.id_for_label }}" class="block text-gray-700 font-medium mb-1">Ingredientes</label>
-          {{ form.ingredientes|add_class:"w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
-        </div>
+      <div>
+        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-2xl shadow-lg font-semibold transition">
+          Guardar Receta 💾
+        </button>
+      </div>
 
-        <div>
-          <label for="{{ form.pasos.id_for_label }}" class="block text-gray-700 font-medium mb-1">Pasos</label>
-          {{ form.pasos|add_class:"w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
-        </div>
-
-        <div>
-          <label for="{{ form.imagen.id_for_label }}" class="block text-gray-700 font-medium mb-1">Imagen</label>
-          {{ form.imagen|add_class:"w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label for="{{ form.dificultad.id_for_label }}" class="block text-gray-700 font-medium mb-1">Dificultad</label>
-            {{ form.dificultad|add_class:"w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
-          </div>
-          <div>
-            <label for="{{ form.porciones.id_for_label }}" class="block text-gray-700 font-medium mb-1">Porciones</label>
-            {{ form.porciones|add_class:"w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
-          </div>
-        </div>
-
-        <div>
-          <label for="{{ form.tiempo_preparacion.id_for_label }}" class="block text-gray-700 font-medium mb-1">Tiempo de preparación (minutos)</label>
-          {{ form.tiempo_preparacion|add_class:"w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
-        </div>
-
-        <div>
-          <label for="{{ form.tags.id_for_label }}" class="block text-gray-700 font-medium mb-1">Etiquetas</label>
-          <small class="text-gray-500 mb-1 block">Separa las etiquetas con comas, por ejemplo: pasta, saludable, rápida</small>
-          {{ form.tags|add_class:"w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
-        </div>
-
-        <div class="flex items-center space-x-2">
-          {{ form.es_publica|add_class:"h-4 w-4 text-blue-600 focus:ring-2 focus:ring-blue-500 rounded" }}
-          <label for="{{ form.es_publica.id_for_label }}" class="text-gray-700 font-medium">¿Es pública?</label>
-        </div>
-
-        <div>
-          <button type="submit" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2">
-            <i class="bi bi-save"></i>
-            <span>Guardar Receta</span>
-          </button>
-        </div>
-
-      </form>
-    </div>
+    </form>
   </div>
 </div>
 {% endblock %}

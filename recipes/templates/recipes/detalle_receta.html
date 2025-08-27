@@ -9,12 +9,23 @@
   <p class="text-sm text-gray-500 mb-4">👁️ Visitas: {{ receta.visitas }}</p>
 
   <!-- Autor -->
-  <div class="flex items-center gap-3 mb-4">
-    <img src="{{ receta.autor.perfil.foto.url }}"
-         alt="Foto de perfil de {{ receta.autor.username }}"
-         class="w-12 h-12 rounded-full object-cover">
-    <p class="text-gray-700"><strong>Autor:</strong> {{ receta.autor.username }}</p>
-  </div>
+<div class="flex items-center gap-3 mb-4">
+  <img src="{{ receta.autor.perfil.foto.url }}"
+       alt="Foto de perfil de {{ receta.autor.username }}"
+       class="w-12 h-12 rounded-full object-cover shadow-md">
+
+  <p class="text-gray-700 flex items-center gap-1">
+    <strong>Autor:</strong>
+    <a href="{% url 'users:perfil_usuario' receta.autor.username %}" 
+       class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold 
+              hover:bg-blue-200 hover:text-blue-900 transition duration-200 ease-in-out shadow-sm">
+       {{ receta.autor.username }}
+    </a>
+  </p>
+</div>
+
+
+
 
   <!-- Info receta -->
   <p class="text-gray-700 mb-3">
@@ -38,8 +49,8 @@
   <!-- Descripción / Ingredientes / Pasos -->
   <div class="space-y-3 text-gray-800">
     <p><strong>Descripción:</strong> {{ receta.descripcion }}</p>
-    <p><strong>Ingredientes:</strong> {{ receta.ingredientes }}</p>
-    <p><strong>Pasos:</strong> {{ receta.pasos }}</p>
+    <p><strong>Ingredientes:</strong> {{ receta.ingredientes|linebreaks }}</p>
+    <p><strong>Pasos:</strong> {{ receta.pasos|linebreaks }}</p>
   </div>
 
   <!-- Imagen -->

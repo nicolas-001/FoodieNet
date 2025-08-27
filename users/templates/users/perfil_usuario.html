@@ -371,54 +371,85 @@ async function borrarAmigo(url, btn){
 </script>
 
 
+<h2 class="text-3xl font-bold text-gray-900 mt-10 mb-6">Recetas de {{ otro.username }}</h2>
 
-      <!-- FIN SCRIPT INLINE -->
-    </div>
-  </div>
+{% if recetas_publicas or es_amigo and recetas_privadas %}
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
+    
+    {% for r in recetas_publicas %}
+      <div class="bg-white rounded-xl shadow-md hover:shadow-xl transition overflow-hidden">
+        {% if r.imagen %}
+          <img src="{{ r.imagen.url }}" alt="{{ r.titulo }}" class="w-full h-56 object-cover">
+        {% else %}
+          <div class="w-full h-56 bg-gray-100 flex items-center justify-center text-gray-400 text-4xl">
+            📷
+          </div>
+        {% endif %}
+        <div class="p-5">
+          <h3 class="text-xl font-semibold text-gray-800 flex items-center gap-2 mb-3">
+            <a href="{% url 'detalle_receta' r.pk %}" class="hover:text-indigo-600 transition">
+              {{ r.titulo }}
+            </a>
+            {% if r.es_publica %}
+              <span class="inline-block bg-green-500 text-white text-sm px-3 py-1 rounded-full font-semibold shadow-lg">
+                Pública
+              </span>
+            {% else %}
+              <span class="inline-block bg-red-500 text-white rounded-full text-xs px-2 py-1">
+                Privada
+              </span>
+            {% endif %}
+          </h3>
 
- <!-- Recetas del usuario -->
-<!-- Recetas del usuario -->
-<h2 class="text-2xl font-semibold text-gray-900 mt-8">Recetas de {{ otro.username }}</h2>
+          <div class="flex items-center gap-3 mb-3">
+            <img src="{{ r.autor.perfil.get_foto_url }}" alt="{{ r.autor.username }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
+            <a href="{% url 'users:perfil_usuario' r.autor.username %}" class="text-gray-700 font-medium hover:text-indigo-600 transition">
+              {{ r.autor.username }}
+            </a>
+          </div>
 
-  {% if recetas_publicas or es_amigo and recetas_privadas %}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-      {% for r in recetas_publicas %}
-        <div class="border rounded shadow overflow-hidden bg-white">
+          <p class="text-gray-600 leading-relaxed">{{ r.descripcion|truncatewords:25 }}</p>
+        </div>
+      </div>
+    {% endfor %}
+
+    {% if es_amigo %}
+      {% for r in recetas_privadas %}
+        <div class="bg-white rounded-xl shadow-md hover:shadow-xl transition overflow-hidden border border-yellow-400">
           {% if r.imagen %}
-            <img src="{{ r.imagen.url }}" alt="{{ r.titulo }}" class="w-full h-48 object-cover">
+            <img src="{{ r.imagen.url }}" alt="{{ r.titulo }}" class="w-full h-56 object-cover">
+          {% else %}
+            <div class="w-full h-56 bg-gray-100 flex items-center justify-center text-gray-400 text-4xl">
+              📷
+            </div>
           {% endif %}
-          <div class="p-4">
-            <h5 class="font-semibold text-lg mb-1">
-              <a href="{% url 'detalle_receta' r.pk %}" class="hover:underline text-gray-900">{{ r.titulo }}</a>
-            </h5>
-            <span class="inline-block mt-1 px-2 py-1 text-sm rounded {{ r.es_publica|badge_class }}">
-              {{ r.es_publica|badge_label }}
-            </span>
+          <div class="p-5">
+            <h3 class="text-xl font-semibold text-gray-800 flex items-center gap-2 mb-3">
+              <a href="{% url 'detalle_receta' r.pk %}" class="hover:text-indigo-600 transition">
+                {{ r.titulo }}
+              </a>
+              <span class="inline-block bg-yellow-400 text-gray-800 text-sm px-3 py-1 rounded-full font-semibold">
+                Privada
+              </span>
+            </h3>
+
+            <div class="flex items-center gap-3 mb-3">
+              <img src="{{ r.autor.perfil.get_foto_url }}" alt="{{ r.autor.username }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
+              <a href="{% url 'perfil_usuario' r.autor.username %}" class="text-gray-700 font-medium hover:text-indigo-600 transition">
+                {{ r.autor.username }}
+              </a>
+            </div>
+
+            <p class="text-gray-600 leading-relaxed">{{ r.descripcion|truncatewords:25 }}</p>
           </div>
         </div>
       {% endfor %}
+    {% endif %}
 
-      {% if es_amigo %}
-        {% for r in recetas_privadas %}
-          <div class="border rounded shadow overflow-hidden bg-white border-yellow-400">
-            {% if r.imagen %}
-              <img src="{{ r.imagen.url }}" alt="{{ r.titulo }}" class="w-full h-48 object-cover">
-            {% endif %}
-            <div class="p-4">
-              <h5 class="font-semibold text-lg mb-1">
-                <a href="{% url 'detalle_receta' r.pk %}" class="hover:underline text-gray-900">{{ r.titulo }}</a>
-              </h5>
-              <span class="inline-block mt-1 px-2 py-1 text-sm rounded bg-yellow-400 text-gray-800">
-                Privada
-              </span>
-            </div>
-          </div>
-        {% endfor %}
-      {% endif %}
-    </div>
-  {% else %}
-    <p class="text-gray-800 mt-2">No hay recetas disponibles para mostrar.</p>
-  {% endif %}
+  </div>
+{% else %}
+  <p class="text-gray-800 mt-2">No hay recetas disponibles para mostrar.</p>
+{% endif %}
 
-
+</div> <!-- 🔑 cierro el container general -->
 {% endblock %}
