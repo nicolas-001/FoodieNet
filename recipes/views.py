@@ -28,6 +28,9 @@ from django.shortcuts import render
 from .helpers import get_recetas_dataframe, limpiar_ingredientes
 import nltk
 from nltk.corpus import stopwords
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 def obtener_recetas_base_para_usuario(usuario, top_n=3):
     liked_recetas = Receta.objects.filter(likes__user=usuario).order_by('-likes__creado')[:top_n]
@@ -549,15 +552,23 @@ def obtener_recomendaciones_generales(user):
     recetas_fav_ids = Favorito.objects.filter(user=user).values_list('receta_id', flat=True)
     recetas_ids = list(set(recetas_liked_ids) | set(recetas_fav_ids))
 
-    if not recetas_ids:
-        # Si no tiene likes ni favoritos, devolvemos las recetas más populares o recientes
-        return list(Receta.objects.filter(es_publica=True).order_by('-visitas')[:3])
+    # 2. Excluir recetas del propio usuario SIEMPRE
+    recetas_ids_autor = Receta.objects.filter(autor=user).values_list('id', flat=True)
+    recetas_ids = list(set(recetas_ids) - set(recetas_ids_autor))
 
-    # 2. Obtener recetas del usuario para formar perfil
+    if not recetas_ids:
+        # Si no tiene likes ni favoritos válidos, usamos la auxiliar
+        base_recetas = obtener_recetas_base_para_usuario(user, top_n=3)
+        if base_recetas:
+            return list(base_recetas)
+        # Si tampoco tiene base, devolvemos recetas populares
+        return list(Receta.objects.filter(es_publica=True).exclude(autor=user).order_by('-visitas')[:3])
+
+    # 3. Obtener recetas base del usuario (liked/favoritos)
     recetas_usuario = Receta.objects.filter(id__in=recetas_ids)
     spanish_stopwords = stopwords.words('spanish')
 
-    # 3. Crear corpus de texto para ML (tags + ingredientes)
+    # 4. Crear corpus de texto para ML (tags + ingredientes)
     def get_corpus(receta):
         tags = " ".join(tag.name for tag in receta.tags.all())
         ingredientes = receta.ingredientes or ""
@@ -565,43 +576,67 @@ def obtener_recomendaciones_generales(user):
 
     perfil_texto = " ".join(get_corpus(r) for r in recetas_usuario)
 
-    # 4. Obtener todas las recetas públicas (menos las que el usuario ya tiene liked/favorito)
-    recetas_publicas = Receta.objects.filter(es_publica=True).exclude(id__in=recetas_ids)
+    # 5. Obtener todas las recetas públicas que no sean del usuario y que no estén ya en su set
+    recetas_publicas = Receta.objects.filter(es_publica=True).exclude(
+        Q(id__in=recetas_ids) | Q(autor=user)
+    )
 
     if not recetas_publicas.exists():
         return []
 
     corpus_recetas = [get_corpus(r) for r in recetas_publicas]
 
-    # 5. Vectorizamos perfil y corpus con Tfidf
+    # 6. Vectorizamos perfil y corpus con Tfidf
     vectorizer = TfidfVectorizer(stop_words=spanish_stopwords)
     vectores = vectorizer.fit_transform([perfil_texto] + corpus_recetas)
 
     perfil_vector = vectores[0]
     recetas_vectors = vectores[1:]
 
-    # 6. Calcular similitud coseno
+    # 7. Calcular similitud coseno
     similitudes = cosine_similarity(perfil_vector, recetas_vectors).flatten()
 
-    # 7. Empaquetar resultados con IDs y similitud
+    # 8. Empaquetar resultados con IDs y similitud
     recetas_similares = list(zip(recetas_publicas, similitudes))
 
-    # 8. Ordenar por similitud descendente
+    # 9. Ordenar por similitud descendente
     recetas_similares.sort(key=lambda x: x[1], reverse=True)
 
-    # 9. Tomamos las top recomendaciones similares
+    # 10. Tomamos las top recomendaciones similares
     recomendaciones = [r[0] for r in recetas_similares[:3]]
 
-    # 10. Si faltan para llegar a 3, rellenamos con populares
+    # 11. Si faltan para llegar a 3, rellenamos con la función auxiliar
     faltantes = 3 - len(recomendaciones)
     if faltantes > 0:
-        recetas_resto = Receta.objects.filter(es_publica=True).exclude(
-            id__in=recetas_ids + [r.id for r in recomendaciones]
-        ).order_by('-visitas')[:faltantes]
+        recetas_resto = obtener_recetas_base_para_usuario(user, top_n=faltantes)
         recomendaciones.extend(list(recetas_resto))
 
     return recomendaciones
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def buscar_recetas(request):
+    query = request.GET.get('search', '').strip()
+    if not query:
+        return Response([])  # devolvemos lista vacía si no hay query
+
+    recetas = Receta.objects.filter(titulo__icontains=query, es_publica=True)[:20]
+
+    resultados = []
+    for r in recetas:
+        resultados.append({
+            'id': r.id,
+            'titulo': r.titulo,
+            'imagen': r.imagen.url if r.imagen else None,
+            # usamos macros por persona
+            'calorias': r.calorias_por_persona or 0,
+            'proteinas': r.proteinas_por_persona or 0,
+            'grasas': r.grasas_por_persona or 0,
+            'carbohidratos': r.carbohidratos_por_persona or 0,
+        })
+
+    return Response(resultados)
 
 
 @login_required
@@ -633,7 +668,7 @@ def crear_plan_diario(request):
                     )
 
             plan.calcular_totales()  # recalcular totales con recetas + platos personalizados
-            return redirect('listar_planes_diarios')
+            return redirect('users:dashboard')
     else:
         form = PlanDiarioForm(usuario=request.user)
 
@@ -750,7 +785,7 @@ def editar_plan_diario(request, pk):
         if form.is_valid():
             plan = form.save()
             plan.calcular_totales()
-            return redirect("listar_planes_diarios")
+            return redirect("users:dashboard")
     else:
         form = PlanDiarioForm(instance=plan, usuario=request.user)
 
@@ -762,6 +797,6 @@ def eliminar_plan_diario(request, pk):
     plan = get_object_or_404(PlanDiario, pk=pk, usuario=request.user)
     if request.method == "POST":
         plan.delete()
-        return redirect("listar_planes_diarios")
-    return render(request, "recipes/eliminar_plan_diario.html", {"plan": plan})
+        return JsonResponse({"status": "ok"})
+    return JsonResponse({"status": "error", "msg": "Método no permitido"}, status=405)
 

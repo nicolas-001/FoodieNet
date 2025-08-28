@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 from users.models import Amistad
 from taggit.managers import TaggableManager
 from scripts.calorias_por_receta import calcular_macros_para_receta  # ajusta el import según tu estructura
+from rest_framework import serializers
+
 
 
 class Receta(models.Model):
@@ -77,7 +79,23 @@ class Receta(models.Model):
             return self.carbohidratos / self.porciones
         return None  # O 0 si prefieres
 
+class RecetaSerializer(serializers.ModelSerializer):
+    calorias_por_persona = serializers.FloatField(read_only=True)
+    proteinas_por_persona = serializers.FloatField(read_only=True)
+    grasas_por_persona = serializers.FloatField(read_only=True)
+    carbohidratos_por_persona = serializers.FloatField(read_only=True)
 
+    class Meta:
+        model = Receta
+        fields = [
+            'id',
+            'titulo',
+            'imagen',
+            'calorias_por_persona',
+            'proteinas_por_persona',
+            'grasas_por_persona',
+            'carbohidratos_por_persona',
+        ]
 
 class Like(models.Model):
     user    = models.ForeignKey(User, on_delete=models.CASCADE)

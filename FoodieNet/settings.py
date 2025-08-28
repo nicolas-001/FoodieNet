@@ -39,7 +39,15 @@ INSTALLED_APPS = [
     'tailwind',
     'django_browser_reload',
     'widget_tweaks',  
+    'rest_framework',
     ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ]
+}
+
 
 TAILWIND_APP_NAME = "theme"
 

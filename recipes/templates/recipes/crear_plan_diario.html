@@ -3,155 +3,150 @@
 {% load widget_tweaks %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto px-4 py-8 bg-white rounded-xl shadow-lg">
-    <!-- Header -->
-    <div class="mb-8">
-        <h2 class="text-2xl font-bold text-gray-800">
-            {% if form.instance.pk %}✏️ Editar{% else %}➕ Crear{% endif %} Plan Diario
-        </h2>
-        <p class="text-gray-500 mt-1">Organiza tus recetas y controla los nutrientes de tu día.</p>
+<div class="max-w-5xl mx-auto px-4 py-8 bg-white rounded-2xl shadow-lg">
+  <!-- Header -->
+  <div class="mb-6">
+    <h2 class="text-2xl font-bold text-gray-800">
+      {% if form.instance.pk %}✏️ Editar{% else %}➕ Crear{% endif %} Plan Diario
+    </h2>
+    <p class="text-gray-500 mt-1">Organiza tus recetas y controla los nutrientes de tu día.</p>
+  </div>
+
+  <form method="post" class="space-y-8">
+    {% csrf_token %}
+
+    <!-- Nombre del plan -->
+    <div>
+      <label for="{{ form.nombre.id_for_label }}" class="block text-gray-700 font-medium mb-2">Nombre del Plan</label>
+      {{ form.nombre|add_class:"w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
     </div>
 
-    <!-- Formulario -->
-    <form method="post" class="space-y-8">
-        {% csrf_token %}
-        {{ form.non_field_errors }}
+    <!-- Buscador premium -->
+    <div>
+      <label class="block text-gray-700 font-medium mb-2">🔍 Buscar receta</label>
+      <input type="text" id="buscador-recetas"
+             placeholder="Escribe el nombre de la receta..."
+             class="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <div id="resultados-recetas" class="mt-2 max-h-80 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-sm hidden"></div>
+    </div>
 
-        <!-- Nombre del plan -->
-        <div>
-            <label for="{{ form.nombre.id_for_label }}" class="block text-gray-700 font-medium mb-2">Nombre del Plan</label>
-            {{ form.nombre|add_class:"w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+    <!-- Recetas seleccionadas -->
+    <div>
+      <h3 class="text-lg font-semibold text-gray-800 mb-3">Recetas seleccionadas</h3>
+      <div id="recetas-seleccionadas" class="space-y-4"></div>
+    </div>
+
+    <!-- Platos personalizados -->
+    <div>
+      <h3 class="text-lg font-semibold text-gray-800 mb-3">Añadir platos personalizados</h3>
+      <div id="platos-personalizados" class="space-y-4"></div>
+      <button type="button" id="add-plato" class="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 transition">
+        ➕ Añadir plato
+      </button>
+    </div>
+
+    <!-- Totales -->
+    <div class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl shadow p-6">
+      <h4 class="text-lg font-bold text-gray-800 mb-4">Totales del Plan</h4>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <div class="bg-white p-4 rounded-lg shadow">
+          <p class="text-sm text-gray-500">Calorías</p>
+          <p class="text-xl font-semibold text-gray-800"><span id="total-calorias">0.0</span> kcal</p>
         </div>
-
-        <!-- Buscar receta -->
-        <div>
-            <label class="block text-gray-700 font-medium mb-2">🔍 Buscar receta</label>
-            <input type="text" id="buscador-recetas"
-                   placeholder="Escribe el nombre de la receta..."
-                   class="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <div class="bg-white p-4 rounded-lg shadow">
+          <p class="text-sm text-gray-500">Proteínas</p>
+          <p class="text-xl font-semibold text-blue-600"><span id="total-proteinas">0.0</span> g</p>
         </div>
-
-        <!-- Selección de recetas -->
-        <div>
-            <h3 class="text-lg font-semibold text-gray-800 mb-3">Selecciona recetas</h3>
-            <div id="recetas-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                {% for receta in form.fields.recetas.queryset %}
-                    <label class="block border rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition cursor-pointer bg-white relative receta-item">
-                        
-                        {% if receta.es_publica %}
-                            <span class="absolute top-2 left-2 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full z-10">Pública</span>
-                        {% endif %}
-
-                        {% if receta.imagen %}
-                            <img src="{{ receta.imagen.url }}" alt="{{ receta.titulo }}" class="w-full h-32 object-cover">
-                        {% else %}
-                            <div class="w-full h-32 flex items-center justify-center bg-gray-200 text-gray-500 text-2xl">
-                                📷
-                            </div>
-                        {% endif %}
-                        
-                        <div class="p-4 space-y-1">
-                            <div class="flex items-start justify-between">
-                                <strong class="text-gray-900 nombre-receta">{{ receta.titulo }}</strong>
-                                <input type="checkbox"
-                                       name="recetas"
-                                       value="{{ receta.id }}"
-                                       data-calorias="{{ receta.calorias_por_persona }}"
-                                       data-proteinas="{{ receta.proteinas_por_persona }}"
-                                       data-grasas="{{ receta.grasas_por_persona }}"
-                                       data-carbohidratos="{{ receta.carbohidratos_por_persona }}"
-                                       class="receta-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                            </div>
-
-                            <p class="text-sm text-gray-600 mt-2">
-                                {{ receta.calorias_por_persona|floatformat:0 }} kcal
-                            </p>
-                            <p class="text-xs text-gray-500">
-                                <span class="text-blue-600">P: {{ receta.proteinas_por_persona|floatformat:1 }}g</span> · 
-                                <span class="text-green-600">G: {{ receta.grasas_por_persona|floatformat:1 }}g</span> · 
-                                <span class="text-orange-600">C: {{ receta.carbohidratos_por_persona|floatformat:1 }}g</span>
-                            </p>
-                        </div>
-                    </label>
-                {% endfor %}
-            </div>
+        <div class="bg-white p-4 rounded-lg shadow">
+          <p class="text-sm text-gray-500">Grasas</p>
+          <p class="text-xl font-semibold text-green-600"><span id="total-grasas">0.0</span> g</p>
         </div>
-
-        <!-- Platos personalizados -->
-        <div>
-            <h3 class="text-lg font-semibold text-gray-800 mb-3">Añadir platos personalizados</h3>
-            <div id="platos-personalizados" class="space-y-4"></div>
-            
-            <button type="button" id="add-plato" class="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 transition">
-                ➕ Añadir plato
-            </button>
+        <div class="bg-white p-4 rounded-lg shadow">
+          <p class="text-sm text-gray-500">Carbohidratos</p>
+          <p class="text-xl font-semibold text-orange-600"><span id="total-carbohidratos">0.0</span> g</p>
         </div>
+      </div>
 
-        <!-- Totales -->
-        <div class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl shadow p-6">
-            <h4 class="text-lg font-bold text-gray-800 mb-4">Totales del Plan</h4>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                <div class="bg-white p-4 rounded-lg shadow">
-                    <p class="text-sm text-gray-500">Calorías</p>
-                    <p class="text-xl font-semibold text-gray-800"><span id="total-calorias">0.0</span> kcal</p>
-                </div>
-                <div class="bg-white p-4 rounded-lg shadow">
-                    <p class="text-sm text-gray-500">Proteínas</p>
-                    <p class="text-xl font-semibold text-blue-600"><span id="total-proteinas">0.0</span> g</p>
-                </div>
-                <div class="bg-white p-4 rounded-lg shadow">
-                    <p class="text-sm text-gray-500">Grasas</p>
-                    <p class="text-xl font-semibold text-green-600"><span id="total-grasas">0.0</span> g</p>
-                </div>
-                <div class="bg-white p-4 rounded-lg shadow">
-                    <p class="text-sm text-gray-500">Carbohidratos</p>
-                    <p class="text-xl font-semibold text-orange-600"><span id="total-carbohidratos">0.0</span> g</p>
-                </div>
-            </div>
-
-            <!-- Botón -->
-            <div class="mt-6 text-center">
-    <button type="submit"
-            class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition duration-300">
-        {% if form.instance.pk %}Actualizar{% else %}Guardar{% endif %} Plan
-    </button>
-</div>
-        </div>
-    </form>
+      <div class="mt-6 text-center">
+        <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition duration-300">
+          {% if form.instance.pk %}Actualizar{% else %}Guardar{% endif %} Plan
+        </button>
+      </div>
+    </div>
+  </form>
 </div>
 
 <script>
-/* === Filtrar recetas por nombre === */
-document.getElementById("buscador-recetas").addEventListener("input", function() {
-    let filtro = this.value.toLowerCase();
-    document.querySelectorAll(".receta-item").forEach(item => {
-        let nombre = item.querySelector(".nombre-receta").textContent.toLowerCase();
-        item.style.display = nombre.includes(filtro) ? "" : "none";
+// Autocomplete con fetch
+const buscador = document.getElementById("buscador-recetas");
+const resultados = document.getElementById("resultados-recetas");
+const seleccionadas = document.getElementById("recetas-seleccionadas");
+
+buscador.addEventListener("input", async () => {
+    const query = buscador.value.trim();
+    if (!query) {
+        resultados.classList.add("hidden");
+        resultados.innerHTML = "";
+        return;
+    }
+
+    const res = await fetch(`/api/recetas/?search=${query}`);
+    const data = await res.json();
+
+    resultados.innerHTML = "";
+    data.forEach(r => {
+        const div = document.createElement("div");
+        div.className = "flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200";
+        div.innerHTML = `
+            <div class="flex items-center gap-2">
+                <img src="${r.imagen || '/static/perfiles/default.jpeg'}" class="w-12 h-12 object-cover rounded" />
+                <div>
+                  <div class="font-semibold text-gray-800">${r.titulo}</div>
+                  <div class="text-xs text-gray-500">C:${r.calorias} kcal · P:${r.proteinas}g · G:${r.grasas}g · C:${r.carbohidratos}g</div>
+                </div>
+            </div>
+            <button type="button" data-id="${r.id}" class="text-blue-600 font-semibold">Añadir</button>
+        `;
+        resultados.appendChild(div);
+
+        div.querySelector("button").addEventListener("click", () => {
+            const recetaDiv = document.createElement("div");
+            recetaDiv.className = "flex items-center justify-between p-2 border rounded shadow bg-white";
+            recetaDiv.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <span>${r.titulo}</span>
+                    <input type="hidden" name="recetas" value="${r.id}"
+                        data-calorias="${r.calorias}" data-proteinas="${r.proteinas}" data-grasas="${r.grasas}" data-carbohidratos="${r.carbohidratos}">
+                </div>
+                <span class="text-xs text-gray-500">C:${r.calorias} kcal · P:${r.proteinas}g · G:${r.grasas}g · C:${r.carbohidratos}g</span>
+            `;
+            seleccionadas.appendChild(recetaDiv);
+            div.remove();
+            resultados.classList.add("hidden");
+            actualizarTotales();
+        });
     });
+
+    resultados.classList.remove("hidden");
 });
 
-/* === Totales === */
+// Totales dinámicos
 function actualizarTotales() {
     let calorias = 0, proteinas = 0, grasas = 0, carbohidratos = 0;
 
-    document.querySelectorAll('.receta-checkbox').forEach(cb => {
-        if (cb.checked) {
-            let cantidad = cb.closest('.receta-item').querySelector('.cantidad')?.value || 1;
-            cantidad = parseFloat(cantidad) || 1;
-            calorias += (parseFloat(cb.dataset.calorias) || 0) * cantidad;
-            proteinas += (parseFloat(cb.dataset.proteinas) || 0) * cantidad;
-            grasas += (parseFloat(cb.dataset.grasas) || 0) * cantidad;
-            carbohidratos += (parseFloat(cb.dataset.carbohidratos) || 0) * cantidad;
-        }
+    document.querySelectorAll('#recetas-seleccionadas input[name="recetas"]').forEach(input => {
+        calorias += parseFloat(input.dataset.calorias || 0);
+        proteinas += parseFloat(input.dataset.proteinas || 0);
+        grasas += parseFloat(input.dataset.grasas || 0);
+        carbohidratos += parseFloat(input.dataset.carbohidratos || 0);
     });
 
     document.querySelectorAll('.plato-input').forEach(plato => {
-        let cantidad = plato.querySelector('.cantidad')?.value || 1;
-        cantidad = parseFloat(cantidad) || 1;
-        calorias += (parseFloat(plato.querySelector('.calorias').value) || 0) * cantidad;
-        proteinas += (parseFloat(plato.querySelector('.proteinas').value) || 0) * cantidad;
-        grasas += (parseFloat(plato.querySelector('.grasas').value) || 0) * cantidad;
-        carbohidratos += (parseFloat(plato.querySelector('.carbohidratos').value) || 0) * cantidad;
+        const cantidad = parseFloat(plato.querySelector('.cantidad')?.value || 1);
+        calorias += parseFloat(plato.querySelector('.calorias')?.value || 0) * cantidad;
+        proteinas += parseFloat(plato.querySelector('.proteinas')?.value || 0) * cantidad;
+        grasas += parseFloat(plato.querySelector('.grasas')?.value || 0) * cantidad;
+        carbohidratos += parseFloat(plato.querySelector('.carbohidratos')?.value || 0) * cantidad;
     });
 
     document.getElementById('total-calorias').textContent = calorias.toFixed(1);
@@ -160,11 +155,7 @@ function actualizarTotales() {
     document.getElementById('total-carbohidratos').textContent = carbohidratos.toFixed(1);
 }
 
-document.querySelectorAll('.receta-checkbox').forEach(cb => {
-    cb.addEventListener('change', actualizarTotales);
-});
-
-/* === Añadir platos personalizados === */
+// Platos personalizados
 document.getElementById("add-plato").addEventListener("click", function() {
     const container = document.getElementById("platos-personalizados");
     const div = document.createElement("div");
@@ -177,15 +168,11 @@ document.getElementById("add-plato").addEventListener("click", function() {
         <input type="number" name="plato_grasas[]" placeholder="G (g)" step="0.1" class="grasas border border-gray-300 rounded-lg p-2">
         <input type="number" name="plato_carbohidratos[]" placeholder="C (g)" step="0.1" class="carbohidratos border border-gray-300 rounded-lg p-2">
         <input type="number" name="plato_cantidad[]" value="1" step="0.1" class="cantidad border border-gray-300 rounded-lg p-2 w-20">
-        <button type="button" class="eliminar bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">Eliminar</button>
+        <button type="button" class="eliminar bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">×</button>
     `;
-
     container.appendChild(div);
 
-    div.querySelectorAll("input").forEach(input => {
-        input.addEventListener("input", actualizarTotales);
-    });
-
+    div.querySelectorAll("input").forEach(input => input.addEventListener("input", actualizarTotales));
     div.querySelector(".eliminar").addEventListener("click", () => {
         div.remove();
         actualizarTotales();
