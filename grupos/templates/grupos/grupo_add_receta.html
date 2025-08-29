@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Añadir receta a {{ grupo.nombre }}{% endblock %}
+
+{% block content %}
+<div class="relative z-20 flex justify-center mt-12 mb-12">
+  <div class="w-full max-w-3xl bg-white rounded-3xl shadow-2xl p-8">
+    <h2 class="text-3xl font-extrabold text-gray-800 text-center mb-4">
+      Añadir receta a "{{ grupo.nombre }}"
+    </h2>
+
+    <form method="POST" class="space-y-6">
+      {% csrf_token %}
+
+      <div>
+        <label for="receta" class="block text-gray-700 font-medium mb-1">Selecciona una receta</label>
+        <select name="receta" id="receta" class="w-full border border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          {% for receta in recetas_usuario %}
+            <option value="{{ receta.id }}">{{ receta.titulo }}</option>
+          {% empty %}
+            <option disabled>No tienes recetas disponibles</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-2xl shadow-lg font-semibold transition">
+          Añadir Receta 💾
+        </button>
+      </div>
+
+      <div class="mt-2 text-center">
+        <a href="{% url 'grupos:grupo_detalle' grupo.pk %}" class="text-blue-500 hover:underline">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

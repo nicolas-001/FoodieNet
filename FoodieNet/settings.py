@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django_browser_reload',
     'widget_tweaks',  
     'rest_framework',
+    "grupos",
     ]
 
 REST_FRAMEWORK = {

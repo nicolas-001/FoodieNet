@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Explorar Grupos{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+
+  <!-- Header con botón Crear Grupo -->
+  <div class="flex justify-between items-center mb-8">
+      <h1 class="text-4xl font-bold">Explorar Grupos</h1>
+      <a href="{% url 'grupos:grupo_crear' %}" 
+         class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl shadow-lg font-semibold transition">
+         ✨ Crear Grupo
+      </a>
+  </div>
+
+  <!-- Grupos que creaste -->
+  <h2 class="text-2xl font-semibold mb-4">Tus Grupos Creados</h2>
+  <div id="grupos-creados" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    {% for grupo in grupos_creados %}
+      <div id="grupo-{{ grupo.pk }}" class="bg-white rounded-2xl shadow-lg p-4 hover:shadow-xl transition relative">
+        <h3 class="text-xl font-bold text-gray-800">
+          <a href="{% url 'grupos:grupo_detalle' grupo.pk %}" class="hover:underline">
+            {{ grupo.nombre }}
+          </a>
+        </h3>
+        <p class="text-gray-500 text-sm mt-2 truncate">{{ grupo.descripcion }}</p>
+        <div class="mt-3 text-sm text-gray-400">
+          Miembros: {{ grupo.miembros.count }} | Recetas: {{ grupo.recetas.count }}
+        </div>
+        <!-- Botón borrar dinámico -->
+        <button onclick="borrarGrupo({{ grupo.pk }})" 
+                class="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">
+          Borrar
+        </button>
+      </div>
+    {% empty %}
+      <p class="text-gray-500">No has creado ningún grupo aún.</p>
+    {% endfor %}
+  </div>
+
+  <!-- Grupos a los que perteneces (excluyendo los que creaste) -->
+  <h2 class="text-2xl font-semibold mb-4">Grupos a los que perteneces</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    {% for grupo in grupos_miembros %}
+      <div class="bg-white rounded-2xl shadow-lg p-4 hover:shadow-xl transition">
+        <h3 class="text-xl font-bold text-gray-800">
+          <a href="{% url 'grupos:grupo_detalle' grupo.pk %}" class="hover:underline">
+            {{ grupo.nombre }}
+          </a>
+        </h3>
+        <p class="text-gray-500 text-sm mt-2 truncate">{{ grupo.descripcion }}</p>
+        <div class="mt-3 text-sm text-gray-400">
+          Miembros: {{ grupo.miembros.count }} | Recetas: {{ grupo.recetas.count }}
+        </div>
+      </div>
+    {% empty %}
+      <p class="text-gray-500">No perteneces a ningún grupo aún.</p>
+    {% endfor %}
+  </div>
+
+  <!-- Grupos públicos -->
+  <h2 class="text-2xl font-semibold mb-4">Grupos Públicos</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for grupo in grupos_publicos %}
+      <div class="bg-white rounded-2xl shadow-lg p-4 hover:shadow-xl transition">
+        <h3 class="text-xl font-bold text-gray-800">
+          <a href="{% url 'grupos:grupo_detalle' grupo.pk %}" class="hover:underline">
+            {{ grupo.nombre }}
+          </a>
+        </h3>
+        <p class="text-gray-500 text-sm mt-2 truncate">{{ grupo.descripcion }}</p>
+        <div class="mt-3 text-sm text-gray-400">
+          Miembros: {{ grupo.miembros.count }} | Recetas: {{ grupo.recetas.count }}
+        </div>
+      </div>
+    {% empty %}
+      <p class="text-gray-500">No hay grupos públicos disponibles.</p>
+    {% endfor %}
+  </div>
+
+</div>
+
+<script>
+function borrarGrupo(pk) {
+    if (!confirm("¿Seguro que quieres borrar este grupo?")) return;
+    fetch("{% url 'grupos:grupo_borrar' 0 %}".replace("0", pk), {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/json"
+        }
+    })
+    .then(res => {
+        if (res.ok) {
+            document.getElementById("grupo-" + pk).remove();
+        } else {
+            alert("No se pudo borrar el grupo.");
+        }
+    })
+    .catch(() => alert("Error al borrar el grupo."));
+}
+</script>
+{% endblock %}
+

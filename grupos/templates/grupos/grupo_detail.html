@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{{ grupo.nombre }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-8">
+  <div class="bg-white rounded-2xl shadow-lg p-6">
+
+    <!-- Header grupo -->
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-3xl font-bold text-gray-800">{{ grupo.nombre }}</h2>
+      {% if user == grupo.creador %}
+        <a href="{% url 'grupos:grupo_editar' grupo.pk %}" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg">✏️ Editar</a>
+      {% endif %}
+    </div>
+    <p class="text-gray-600 mb-6">{{ grupo.descripcion }}</p>
+
+    <!-- Info creador, miembros, recetas y privacidad -->
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex flex-col gap-2 text-sm text-gray-500">
+        <span><strong>Creador:</strong> 
+          <a href="{% url 'users:perfil_usuario' grupo.creador.username %}" class="text-blue-600 hover:underline">
+            {{ grupo.creador.username }}
+          </a>
+        </span>
+        <span>Miembros: {{ miembros.count }}</span>
+        <span>Recetas: {{ recetas|length }}</span>
+        <span>
+          {% if grupo.privacidad == "publico" %}Público{% else %}Privado{% endif %}
+        </span>
+      </div>
+      <div>
+        {% if es_miembro %}
+          <span class="text-green-600 font-semibold">Siguiendo</span>
+        {% elif grupo.privacidad == "publico" %}
+          <a href="{% url 'grupos:unirse_grupo' grupo.pk %}" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded">Unirse</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Botón Añadir receta -->
+    {% if user.is_authenticated and es_miembro %}
+      <div class="mb-6 text-center">
+        <a href="{% url 'grupos:grupo_agregar_receta' grupo.pk %}"
+           class="inline-block bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-xl shadow-lg font-semibold transition">
+          ➕ Añadir receta
+        </a>
+      </div>
+    {% endif %}
+
+    <!-- Listado de miembros -->
+    <h3 class="text-2xl font-semibold mb-4">Miembros del grupo</h3>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      {% for miembro in miembros %}
+        <a href="{% url 'users:perfil_usuario' miembro.usuario.username %}" class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+          {% if miembro.usuario.profile.avatar %}
+            <img src="{{ miembro.usuario.profile.avatar.url }}" alt="{{ miembro.usuario.username }}" class="w-10 h-10 rounded-full object-cover">
+          {% else %}
+            <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold">
+              {{ miembro.usuario.username|slice:":1"|upper }}
+            </div>
+          {% endif %}
+          <span class="text-gray-700 font-medium">{{ miembro.usuario.username }}</span>
+        </a>
+      {% empty %}
+        <p class="text-gray-500">Este grupo aún no tiene miembros.</p>
+      {% endfor %}
+    </div>
+
+    <!-- Listado de recetas -->
+    <h3 class="text-2xl font-semibold mb-4">Recetas en este grupo</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% for receta in recetas %}
+        <div class="bg-gray-50 rounded-lg p-4 shadow hover:shadow-md transition">
+          <h4 class="font-semibold text-gray-800">{{ receta.titulo }}</h4>
+          <p class="text-gray-500 text-sm truncate">{{ receta.descripcion|truncatechars:100 }}</p>
+          <div class="mt-2 flex justify-between text-xs text-gray-400">
+            <span>Cal: {{ receta.calorias }} kcal</span>
+            <span>Likes: {{ receta.likes.count }}</span>
+          </div>
+          <a href="{% url 'detalle_receta' receta.pk %}" class="text-blue-600 hover:underline mt-2 inline-block">Ver receta</a>
+        </div>
+      {% empty %}
+        <p class="text-gray-500">No hay recetas en este grupo.</p>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
