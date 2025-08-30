@@ -28,6 +28,7 @@ urlpatterns = [
     path('auth/', include(('authentication.urls', 'authentication'), namespace='authentication')),
     path('users/', include(('users.urls', 'users'), namespace='users')),
     path("grupos/", include("grupos.urls")),
+    path('notificaciones/', include('notifications.urls', namespace='notifications')),
     path("__reload__/", include("django_browser_reload.urls")),
 
 

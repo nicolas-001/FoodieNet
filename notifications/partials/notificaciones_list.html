@@ -1,0 +1,7 @@
+<ul class="divide-y divide-gray-200 max-h-96 overflow-y-auto">
+  {% for notif in notificaciones %}
+    {% include "notifications/partials/notificacion_item.html" %}
+  {% empty %}
+    <li class="px-4 py-2 text-gray-500">No tienes notificaciones.</li>
+  {% endfor %}
+</ul>

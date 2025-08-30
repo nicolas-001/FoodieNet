@@ -13,7 +13,7 @@ urlpatterns = [
     path("<int:pk>/editar/", views.grupo_editar, name="grupo_editar"), 
     path("<int:pk>/agregar-receta/", views.grupo_agregar_receta, name="grupo_agregar_receta"),
     path("explorar/", views.explorar_grupos, name="explorar_grupos"),
-    path('<int:pk>/borrar/', views.grupo_borrar, name='grupo_borrar')
+    path('<int:pk>/borrar/', views.grupo_borrar, name='grupo_borrar'),
 
 ]
 

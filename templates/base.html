@@ -53,8 +53,39 @@
           </form>
 
           {% if user.is_authenticated %}
+
+            <!-- Dropdown Notificaciones -->
+            <div class="relative ml-2">
+              <button id="noti-btn" class="relative flex items-center focus:outline-none transition duration-300 text-2xl">
+                🔔
+                {% if notificaciones_total > 0 %}
+                  <span
+                    class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                    {{ notificaciones_total }}
+                  </span>
+                {% endif %}
+              </button>
+
+              <div id="noti-dropdown"
+                   class="absolute right-0 mt-2 w-80 bg-white text-gray-800 rounded-lg shadow-lg hidden z-50">
+                <div class="p-2 font-semibold border-b">Notificaciones</div>
+                <ul class="max-h-64 overflow-y-auto">
+                  {% for n in notificaciones %}
+                    <li class="p-2 hover:bg-gray-100 border-b flex flex-col">
+                      <span>{{ n.mensaje }}</span>
+                      <span class="text-xs text-gray-400">{{ n.fecha|date:"d M Y H:i" }}</span>
+                    </li>
+                  {% empty %}
+                    <li class="p-2 text-gray-500">No tienes notificaciones</li>
+                  {% endfor %}
+                </ul>
+                <a href="{% url 'notifications:ver_todas' %}"
+                   class="block text-center p-2 bg-gray-100 hover:bg-gray-200 rounded-b-lg">Ver todas</a>
+              </div>
+            </div>
+
             <!-- Dropdown Perfil -->
-            <div class="relative">
+            <div class="relative ml-2">
               <button id="perfil-btn" class="flex items-center gap-2 focus:outline-none transition duration-300">
                 <img src="{{ user.perfil.get_foto_url }}" alt="Foto perfil {{ user.username }}"
                      class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-lg">
@@ -76,19 +107,27 @@
             <script>
               const perfilBtn = document.getElementById('perfil-btn');
               const perfilDropdown = document.getElementById('perfil-dropdown');
-
               perfilBtn.addEventListener('click', function(e) {
-                e.stopPropagation(); // solo evita que se cierre al abrir
+                e.stopPropagation();
                 perfilDropdown.classList.toggle('hidden');
               });
 
+              const notiBtn = document.getElementById('noti-btn');
+              const notiDropdown = document.getElementById('noti-dropdown');
+              notiBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                notiDropdown.classList.toggle('hidden');
+              });
+
               document.addEventListener('click', function() {
-                perfilDropdown.classList.add('hidden'); // cerrar al click fuera
+                perfilDropdown.classList.add('hidden');
+                notiDropdown.classList.add('hidden');
               });
 
               document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
-                  perfilDropdown.classList.add('hidden'); // cerrar con Escape
+                  perfilDropdown.classList.add('hidden');
+                  notiDropdown.classList.add('hidden');
                 }
               });
             </script>
@@ -125,6 +164,6 @@
 
   </div>
 
-   {% block extra_scripts %}{% endblock %}
+  {% block extra_scripts %}{% endblock %}
 </body>
 </html>

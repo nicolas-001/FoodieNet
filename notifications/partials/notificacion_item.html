@@ -1,0 +1,15 @@
+<li class="px-4 py-2 hover:bg-gray-100 transition duration-200">
+  <a href="{{ notif.get_url }}" class="flex gap-2">
+    {% if notif.user.profile.avatar %}
+      <img src="{{ notif.user.profile.avatar.url }}" class="w-8 h-8 rounded-full object-cover">
+    {% else %}
+      <div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold">
+        {{ notif.user.username|slice:":1"|upper }}
+      </div>
+    {% endif %}
+    <div class="flex-1 text-sm">
+      <p>{{ notif.mensaje }}</p>
+      <span class="text-xs text-gray-400">{{ notif.fecha|timesince }} ago</span>
+    </div>
+  </a>
+</li>

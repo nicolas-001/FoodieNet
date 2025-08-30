@@ -1,8 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from .models import GrupoRecetas, GrupoMiembro, RecetaGrupo
+from .models import GrupoRecetas, GrupoMiembro, RecetaGrupo, RecetaDestacadaGrupo, PublicacionGrupo
 from recipes.models import Receta
 from .forms import GrupoForm, AñadirRecetaGrupoForm
+from django.http import JsonResponse, HttpResponseForbidden
+from django.views.decorators.http import require_POST
 
 # 📌 Listar todos los grupos (públicos y privados si eres amigo del creador)
 def grupo_list(request):
@@ -11,6 +13,7 @@ def grupo_list(request):
 
 
 # 📌 Detalle de grupo
+
 @login_required
 def grupo_detalle(request, pk):
     grupo = get_object_or_404(GrupoRecetas, pk=pk)
@@ -19,13 +22,27 @@ def grupo_detalle(request, pk):
 
     es_miembro = GrupoMiembro.objects.filter(grupo=grupo, usuario=request.user).exists()
 
+    # Publicaciones
+    publicaciones = grupo.publicaciones.all()
+
+    if request.method == "POST" and "contenido" in request.POST:
+        contenido = request.POST.get("contenido")
+        if contenido:
+            PublicacionGrupo.objects.create(
+                grupo=grupo, autor=request.user, contenido=contenido
+            )
+            return redirect("grupos:grupo_detalle", pk=grupo.pk)
+
     context = {
         "grupo": grupo,
         "miembros": miembros,
         "recetas": recetas,
         "es_miembro": es_miembro,
+        "publicaciones": publicaciones,
+        "recetas_destacadas": grupo.recetas_destacadas.all(),
     }
     return render(request, "grupos/grupo_detail.html", context)
+
 
 
 # 📌 Crear grupo
@@ -110,17 +127,22 @@ def explorar_grupos(request):
     }
     return render(request, "grupos/explorar_grupos.html", context)
 @login_required
+@require_POST
 def grupo_borrar(request, pk):
     grupo = get_object_or_404(GrupoRecetas, pk=pk)
     if grupo.creador != request.user:
-        # Evitar que alguien que no sea el creador borre
-        return redirect('grupos:explorar_grupos')
+        return HttpResponseForbidden("No tienes permiso para eliminar este grupo.")
 
-    if request.method == 'POST':
-        grupo.delete()
-        return redirect('grupos:explorar_grupos')
-
-    # Podrías mostrar un template de confirmación
-    return render(request, 'grupos/grupo_confirmar_borrar.html', {'grupo': grupo})
+    grupo.delete()
+    return JsonResponse({"success": True})
 
 
+@login_required
+def grupo_destacar_receta(request, pk, receta_id):
+    grupo = get_object_or_404(GrupoRecetas, pk=pk)
+    receta = get_object_or_404(Receta, pk=receta_id)
+
+    if request.user == grupo.creador:  # solo admin
+        RecetaDestacadaGrupo.objects.get_or_create(grupo=grupo, receta=receta, destacado_por=request.user)
+
+    return redirect("grupos:grupo_detalle", pk=grupo.pk)

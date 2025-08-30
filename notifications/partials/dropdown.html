@@ -1,0 +1,13 @@
+<div class="relative">
+  <button id="notif-btn" class="relative flex items-center focus:outline-none transition duration-300">
+    🔔
+    {% if notificaciones|length > 0 %}
+      <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">{{ notificaciones|length }}</span>
+    {% endif %}
+  </button>
+
+  <div id="notif-dropdown" class="absolute right-0 mt-2 w-80 bg-white text-gray-800 rounded-lg shadow-lg hidden z-50">
+    <h3 class="px-4 py-2 border-b font-semibold">Notificaciones</h3>
+    {% include "notifications/partials/notificaciones_list.html" %}
+  </div>
+</div>

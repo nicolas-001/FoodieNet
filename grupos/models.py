@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from recipes.models import Receta
 
 class GrupoRecetas(models.Model):
     PRIVACIDAD_CHOICES = [
@@ -39,3 +40,24 @@ class RecetaGrupo(models.Model):
 
     class Meta:
         unique_together = ("grupo", "receta")
+
+class PublicacionGrupo(models.Model):
+    grupo = models.ForeignKey(GrupoRecetas, on_delete=models.CASCADE, related_name="publicaciones")
+    autor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="publicaciones_grupo")
+    contenido = models.TextField()
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-fecha_creacion']
+
+    def __str__(self):
+        return f"{self.autor.username} en {self.grupo.nombre}"
+    
+class RecetaDestacadaGrupo(models.Model):
+    grupo = models.ForeignKey(GrupoRecetas, on_delete=models.CASCADE, related_name="recetas_destacadas")
+    receta = models.ForeignKey(Receta, on_delete=models.CASCADE)
+    destacado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('grupo', 'receta')

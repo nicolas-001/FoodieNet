@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'widget_tweaks',  
     'rest_framework',
     "grupos",
+    'notifications.apps.NotificationsConfig',
     ]
 
 REST_FRAMEWORK = {
@@ -78,6 +79,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'notifications.context_processors.notificaciones_context',
             ],
         },
     },

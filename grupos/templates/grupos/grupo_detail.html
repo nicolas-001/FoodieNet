@@ -22,7 +22,6 @@
             {{ grupo.creador.username }}
           </a>
         </span>
-        <span>Miembros: {{ miembros.count }}</span>
         <span>Recetas: {{ recetas|length }}</span>
         <span>
           {% if grupo.privacidad == "publico" %}Público{% else %}Privado{% endif %}
@@ -32,7 +31,7 @@
         {% if es_miembro %}
           <span class="text-green-600 font-semibold">Siguiendo</span>
         {% elif grupo.privacidad == "publico" %}
-          <a href="{% url 'grupos:unirse_grupo' grupo.pk %}" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded">Unirse</a>
+          <a href="{% url 'grupos:grupo_unirse' grupo.pk %}" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded">Unirse</a>
         {% endif %}
       </div>
     </div>
@@ -47,26 +46,89 @@
       </div>
     {% endif %}
 
-    <!-- Listado de miembros -->
-    <h3 class="text-2xl font-semibold mb-4">Miembros del grupo</h3>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      {% for miembro in miembros %}
-        <a href="{% url 'users:perfil_usuario' miembro.usuario.username %}" class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-          {% if miembro.usuario.profile.avatar %}
-            <img src="{{ miembro.usuario.profile.avatar.url }}" alt="{{ miembro.usuario.username }}" class="w-10 h-10 rounded-full object-cover">
-          {% else %}
-            <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold">
-              {{ miembro.usuario.username|slice:":1"|upper }}
+    <!-- Desplegable de miembros -->
+    <div class="mb-6">
+      <button type="button" class="bg-gray-100 px-4 py-2 rounded-lg w-full text-left font-semibold hover:bg-gray-200" 
+              onclick="document.getElementById('miembros-lista').classList.toggle('hidden')">
+        Miembros del grupo ({{ miembros.count }})
+      </button>
+      <div id="miembros-lista" class="hidden mt-2 grid grid-cols-2 md:grid-cols-4 gap-4">
+        {% for miembro in miembros %}
+          <a href="{% url 'users:perfil_usuario' miembro.usuario.username %}" class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+            {% if miembro.usuario.profile.avatar %}
+              <img src="{{ miembro.usuario.profile.avatar.url }}" alt="{{ miembro.usuario.username }}" class="w-10 h-10 rounded-full object-cover">
+            {% else %}
+              <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold">
+                {{ miembro.usuario.username|slice:":1"|upper }}
+              </div>
+            {% endif %}
+            <span class="text-gray-700 font-medium">{{ miembro.usuario.username }}</span>
+          </a>
+        {% empty %}
+          <p class="text-gray-500 col-span-full">Este grupo aún no tiene miembros.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- 🔹 Publicaciones -->
+    {% if es_miembro %}
+      <h3 class="text-2xl font-semibold mb-4">Publicaciones del grupo</h3>
+      <form method="post" class="mb-6">
+        {% csrf_token %}
+        <textarea name="contenido" rows="3" class="w-full border rounded-xl p-2" placeholder="Escribe algo..."></textarea>
+        <button type="submit" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg">Publicar</button>
+      </form>
+
+      <div class="space-y-4 mb-8">
+        {% for pub in publicaciones %}
+          <div class="p-4 bg-gray-50 rounded-lg shadow-sm flex gap-3 items-start">
+            <!-- Avatar -->
+            {% if pub.autor.profile.avatar %}
+              <a href="{% url 'users:perfil_usuario' pub.autor.username %}">
+                <img src="{{ pub.autor.profile.avatar.url }}" class="w-10 h-10 rounded-full object-cover">
+              </a>
+            {% else %}
+              <a href="{% url 'users:perfil_usuario' pub.autor.username %}">
+                <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold">
+                  {{ pub.autor.username|slice:":1"|upper }}
+                </div>
+              </a>
+            {% endif %}
+            <div>
+              <div class="flex items-center gap-2">
+                <a href="{% url 'users:perfil_usuario' pub.autor.username %}" class="font-semibold text-gray-800 hover:underline">
+                  {{ pub.autor.username }}
+                </a>
+                <span class="text-xs text-gray-400">{{ pub.fecha_creacion|date:"d M Y H:i" }}</span>
+              </div>
+              <p class="text-gray-700">{{ pub.contenido }}</p>
             </div>
-          {% endif %}
-          <span class="text-gray-700 font-medium">{{ miembro.usuario.username }}</span>
-        </a>
+          </div>
+        {% empty %}
+          <p class="text-gray-500">No hay publicaciones todavía.</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- ⭐ Recetas destacadas -->
+    <h3 class="text-2xl font-semibold mb-4">⭐ Recetas destacadas</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      {% for receta in recetas|dictsortreversed:"likes.count"|slice:":3" %}
+        <div class="bg-gradient-to-r from-yellow-100 to-yellow-200 rounded-lg p-4 shadow hover:shadow-md transition">
+          <h4 class="font-semibold text-gray-800">{{ receta.titulo }}</h4>
+          <p class="text-gray-600 text-sm truncate">{{ receta.descripcion|truncatechars:100 }}</p>
+          <div class="mt-2 flex justify-between text-xs text-gray-600">
+            <span>🔥 Likes: {{ receta.likes.count }}</span>
+            <span>⏱️ {{ receta.tiempo_preparacion }} min</span>
+          </div>
+          <a href="{% url 'detalle_receta' receta.pk %}" class="text-blue-700 hover:underline mt-2 inline-block">Ver receta</a>
+        </div>
       {% empty %}
-        <p class="text-gray-500">Este grupo aún no tiene miembros.</p>
+        <p class="text-gray-500">No hay recetas destacadas.</p>
       {% endfor %}
     </div>
 
-    <!-- Listado de recetas -->
+    <!-- Listado de todas las recetas -->
     <h3 class="text-2xl font-semibold mb-4">Recetas en este grupo</h3>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       {% for receta in recetas %}
@@ -76,6 +138,7 @@
           <div class="mt-2 flex justify-between text-xs text-gray-400">
             <span>Cal: {{ receta.calorias }} kcal</span>
             <span>Likes: {{ receta.likes.count }}</span>
+            <span>⏱️ {{ receta.tiempo_preparacion }} min</span>
           </div>
           <a href="{% url 'detalle_receta' receta.pk %}" class="text-blue-600 hover:underline mt-2 inline-block">Ver receta</a>
         </div>
@@ -87,4 +150,3 @@
   </div>
 </div>
 {% endblock %}
-
