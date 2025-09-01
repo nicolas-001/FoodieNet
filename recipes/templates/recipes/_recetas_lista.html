@@ -1,0 +1,32 @@
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+  {% for receta in page_obj %}
+  <div class="receta-card bg-white rounded-xl shadow-md hover:shadow-xl transition overflow-hidden"
+       data-tags="{{ receta.tags.all|join:', '|lower }}"
+       data-dificultad="{{ receta.dificultad }}">
+    {% if receta.imagen %}
+      <img src="{{ receta.imagen.url }}" alt="{{ receta.titulo }}" class="w-full h-56 object-cover">
+    {% endif %}
+    <div class="p-5">
+      <h3 class="text-xl font-semibold text-gray-800 flex items-center gap-2 mb-3">
+        <a href="{% url 'detalle_receta' receta.pk %}" class="hover:text-indigo-600 transition">
+          {{ receta.titulo }}
+        </a>
+        {% if receta.es_publica %}
+          <span class="inline-block bg-green-500 text-white text-sm px-3 py-1 rounded-full font-semibold shadow-lg">
+            Pública
+          </span>
+        {% else %}
+          <span class="inline-block bg-red-500 text-white rounded-full" style="font-size:0.625rem; padding:0.15rem 0.3rem;">
+            Privada
+          </span>
+        {% endif %}
+      </h3>
+      <div class="flex items-center gap-3 mb-3">
+        <img src="{{ receta.autor.perfil.get_foto_url }}" alt="Foto de {{ receta.autor.username }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
+        <small class="text-gray-500">Por: {{ receta.autor.username }}</small>
+      </div>
+      <p class="text-gray-600 leading-relaxed">{{ receta.descripcion|truncatewords:25 }}</p>
+    </div>
+  </div>
+  {% endfor %}
+</div>

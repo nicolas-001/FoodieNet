@@ -15,13 +15,33 @@
     {% endif %}
   </div>
 
+  <!-- Filtros -->
+  <div class="flex gap-4 mb-6">
+    <select id="filter-tags" class="border rounded-lg p-2">
+      <option value="">Todos los tags</option>
+      {% for tag in tags_disponibles %}
+        <option value="{{ tag.name|lower }}" {% if tag.name == tag_seleccionado %}selected{% endif %}>
+          {{ tag.name }}
+        </option>
+      {% endfor %}
+    </select>
+
+    <select id="filter-dificultad" class="border rounded-lg p-2">
+      <option value="">Todas las dificultades</option>
+      <option value="fácil" {% if dificultad_seleccionada == "fácil" %}selected{% endif %}>Fácil</option>
+      <option value="media" {% if dificultad_seleccionada == "media" %}selected{% endif %}>Media</option>
+      <option value="difícil" {% if dificultad_seleccionada == "difícil" %}selected{% endif %}>Difícil</option>
+    </select>
+  </div>
+
   {% if page_obj.object_list %}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="recetas-container">
       {% for receta in page_obj.object_list %}
-        <div class="bg-white rounded-2xl shadow hover:shadow-lg transition overflow-hidden">
+        <div class="receta-card bg-white rounded-2xl shadow hover:shadow-lg transition overflow-hidden"
+             data-tags="{{ receta.tags.all|join:', '|lower }}"
+             data-dificultad="{{ receta.dificultad }}">
           {% if receta.imagen %}
-            <img src="{{ receta.imagen.url }}" alt="{{ receta.titulo }}"
-                 class="w-full h-64 object-cover">
+            <img src="{{ receta.imagen.url }}" alt="{{ receta.titulo }}" class="w-full h-64 object-cover">
           {% endif %}
           <div class="p-5">
             <h2 class="text-xl font-semibold flex items-center gap-2">
@@ -45,7 +65,6 @@
             <p class="text-gray-700 mb-2">
               <span class="font-semibold">Descripción:</span> {{ receta.descripcion }}
             </p>
-        
           </div>
         </div>
       {% endfor %}
@@ -54,8 +73,8 @@
     <!-- Paginación -->
     <div class="flex justify-center items-center mt-8 space-x-2">
       {% if page_obj.has_previous %}
-        <a href="?page=1" class="px-3 py-1 rounded-lg border bg-white hover:bg-gray-100">&laquo;&laquo;</a>
-        <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 rounded-lg border bg-white hover:bg-gray-100">&laquo;</a>
+        <a href="?page=1&{{ query_params }}" class="px-3 py-1 rounded-lg border bg-white hover:bg-gray-100">&laquo;&laquo;</a>
+        <a href="?page={{ page_obj.previous_page_number }}&{{ query_params }}" class="px-3 py-1 rounded-lg border bg-white hover:bg-gray-100">&laquo;</a>
       {% else %}
         <span class="px-3 py-1 rounded-lg border bg-gray-100 text-gray-400">&laquo;&laquo;</span>
         <span class="px-3 py-1 rounded-lg border bg-gray-100 text-gray-400">&laquo;</span>
@@ -66,8 +85,8 @@
       </span>
 
       {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 rounded-lg border bg-white hover:bg-gray-100">&raquo;</a>
-        <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-1 rounded-lg border bg-white hover:bg-gray-100">&raquo;&raquo;</a>
+        <a href="?page={{ page_obj.next_page_number }}&{{ query_params }}" class="px-3 py-1 rounded-lg border bg-white hover:bg-gray-100">&raquo;</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}&{{ query_params }}" class="px-3 py-1 rounded-lg border bg-white hover:bg-gray-100">&raquo;&raquo;</a>
       {% else %}
         <span class="px-3 py-1 rounded-lg border bg-gray-100 text-gray-400">&raquo;</span>
         <span class="px-3 py-1 rounded-lg border bg-gray-100 text-gray-400">&raquo;&raquo;</span>
@@ -78,4 +97,31 @@
     <p class="text-gray-500 text-center mt-6">No hay recetas disponibles.</p>
   {% endif %}
 </div>
+
+<script>
+const selectTag = document.getElementById('filter-tags');
+const selectDificultad = document.getElementById('filter-dificultad');
+
+function filtrarRecetas() {
+  const tagFiltro = selectTag.value.toLowerCase();
+  const difFiltro = selectDificultad.value.toLowerCase();
+
+  document.querySelectorAll('.receta-card').forEach(card => {
+    const tags = card.getAttribute('data-tags').toLowerCase();
+    const dificultad = card.getAttribute('data-dificultad').toLowerCase();
+
+    const tagCoincide = !tagFiltro || tags.includes(tagFiltro);
+    const difCoincide = !difFiltro || dificultad === difFiltro;
+
+    card.style.display = (tagCoincide && difCoincide) ? '' : 'none';
+  });
+}
+
+selectTag.addEventListener('change', filtrarRecetas);
+selectDificultad.addEventListener('change', filtrarRecetas);
+
+// Filtrar al cargar la página si hay filtros seleccionados
+document.addEventListener('DOMContentLoaded', filtrarRecetas);
+</script>
 {% endblock %}
+

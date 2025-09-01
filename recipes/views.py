@@ -31,6 +31,8 @@ from nltk.corpus import stopwords
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from taggit.models import Tag
+from django.template.loader import render_to_string
 
 def obtener_recetas_base_para_usuario(usuario, top_n=3):
     liked_recetas = Receta.objects.filter(likes__user=usuario).order_by('-likes__creado')[:top_n]
@@ -48,14 +50,11 @@ def lista_recetas(request):
     recomendaciones = []
     tipo_recomendacion = "popular"  # Valor por defecto
 
+    tag_seleccionado = request.GET.get('tag', '')
+    dificultad_seleccionada = request.GET.get('dificultad', '')
+
     if usuario.is_authenticated:
         recomendaciones = obtener_recomendaciones_generales(usuario)
-
-        # Comprobamos cuántas recetas llegan
-        print(f"Recomendaciones (count): {len(recomendaciones)}")
-        for r in recomendaciones:
-            print(f" - {r.id}: {r.titulo}")
-
         recomendaciones_ids = [r.id for r in recomendaciones]
 
         amigos = usuario.perfil.obtener_amigos()
@@ -64,12 +63,28 @@ def lista_recetas(request):
             ~Q(id__in=recomendaciones_ids)
         ).select_related('autor__perfil').distinct().order_by('-fecha_creacion')
 
-        # Determinar tipo de recomendación según interacción del usuario
         if Like.objects.filter(user=usuario).exists() or Favorito.objects.filter(user=usuario).exists():
             tipo_recomendacion = "likes"
 
     else:
         recetas_qs = Receta.objects.filter(es_publica=True).select_related('autor__perfil').order_by('-fecha_creacion')
+
+    # Filtrar por tag
+    if tag_seleccionado:
+        recetas_qs = recetas_qs.filter(tags__name__iexact=tag_seleccionado)
+
+    # Filtrar por dificultad
+    if dificultad_seleccionada:
+        recetas_qs = recetas_qs.filter(dificultad__iexact=dificultad_seleccionada)
+
+    # Tags disponibles para el filtro
+    tags_disponibles = Tag.objects.all().order_by('name')
+
+    # Construir query_params para mantener filtros en la paginación
+    query_params = request.GET.copy()
+    if 'page' in query_params:
+        del query_params['page']
+    query_params = query_params.urlencode()
 
     paginator = Paginator(recetas_qs, 10)
     page_number = request.GET.get('page')
@@ -79,7 +94,39 @@ def lista_recetas(request):
         'page_obj': page_obj,
         'recomendaciones': recomendaciones,
         'tipo_recomendacion': tipo_recomendacion,
+        'tags_disponibles': tags_disponibles,
+        'tag_seleccionado': tag_seleccionado,
+        'dificultad_seleccionada': dificultad_seleccionada,
+        'query_params': query_params
     })
+
+def lista_recetas_ajax(request):
+    usuario = request.user
+    tag_filtro = request.GET.get('tag', '')
+    dificultad_filtro = request.GET.get('dificultad', '')
+
+    recetas_qs = Receta.objects.all().select_related('autor__perfil').order_by('-fecha_creacion')
+
+    if usuario.is_authenticated:
+        recomendaciones_ids = [r.id for r in obtener_recomendaciones_generales(usuario)]
+        amigos = usuario.perfil.obtener_amigos()
+        recetas_qs = recetas_qs.filter(
+            (Q(es_publica=True) | Q(es_publica=False, autor__in=amigos)) &
+            ~Q(id__in=recomendaciones_ids)
+        )
+
+    # Aplicar filtros
+    if tag_filtro:
+        recetas_qs = recetas_qs.filter(tags__name__iexact=tag_filtro)
+    if dificultad_filtro:
+        recetas_qs = recetas_qs.filter(dificultad__iexact=dificultad_filtro)
+
+    paginator = Paginator(recetas_qs, 10)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    html = render_to_string('recipes/_recetas_lista.html', {'page_obj': page_obj})
+    return JsonResponse({'html': html, 'num_pages': paginator.num_pages, 'current_page': page_obj.number})
 
 def detalle_receta(request, pk):
     receta = get_object_or_404(Receta.objects.select_related('autor__perfil'), pk=pk)
@@ -216,13 +263,7 @@ def toggle_favorito(request, pk):
     })
 @login_required
 def feed_amigos(request):
-    if not request.user.is_authenticated:
-        # Redirigir o mostrar mensaje si no está autenticado
-        # Por ejemplo, redirigir al login:
-        from django.shortcuts import redirect
-        return redirect('login')
-
-    # Obtener amistades aceptadas donde el usuario es de_usuario o para_usuario
+    # Obtener amistades aceptadas
     amistades = Amistad.objects.filter(
         Q(de_usuario=request.user) | Q(para_usuario=request.user),
         aceptada=True
@@ -235,17 +276,41 @@ def feed_amigos(request):
         if amistad.para_usuario != request.user:
             amigos_ids.add(amistad.para_usuario.id)
 
-    # Obtener recetas de amigos: públicas o privadas (de esos amigos)
+    # Obtener recetas de amigos
     recetas = Receta.objects.filter(
         autor__id__in=amigos_ids
     ).order_by('-fecha_creacion')
+
+    # FILTROS
+    tag_seleccionado = request.GET.get('tag')
+    dificultad_seleccionada = request.GET.get('dificultad')
+
+    if tag_seleccionado and tag_seleccionado != "todos":
+        recetas = recetas.filter(tags__name__in=[tag_seleccionado])
+
+    if dificultad_seleccionada and dificultad_seleccionada != "todas":
+        recetas = recetas.filter(dificultad=dificultad_seleccionada)
+
+    # Obtener todos los tags disponibles para las recetas filtradas
+    tags_disponibles = Tag.objects.filter(receta__in=recetas).distinct()
 
     # PAGINACIÓN: 10 recetas por página
     paginator = Paginator(recetas, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    return render(request, 'recipes/feed_amigos.html', {'page_obj': page_obj})
+    # Guardar los parámetros de filtro en la plantilla para que persistan al paginar
+    query_params = request.GET.copy()
+    if 'page' in query_params:
+        query_params.pop('page')
+
+    return render(request, 'recipes/feed_amigos.html', {
+        'page_obj': page_obj,
+        'tags_disponibles': tags_disponibles,
+        'tag_seleccionado': tag_seleccionado,
+        'dificultad_seleccionada': dificultad_seleccionada,
+        'query_params': query_params.urlencode(),
+    })
 
 import os, unicodedata
 import requests, json

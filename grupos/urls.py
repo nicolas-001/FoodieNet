@@ -14,6 +14,7 @@ urlpatterns = [
     path("<int:pk>/agregar-receta/", views.grupo_agregar_receta, name="grupo_agregar_receta"),
     path("explorar/", views.explorar_grupos, name="explorar_grupos"),
     path('<int:pk>/borrar/', views.grupo_borrar, name='grupo_borrar'),
+    path('buscar_grupos/', views.buscar_grupos, name='buscar_grupos'),
 
 ]
 

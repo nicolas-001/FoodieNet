@@ -160,3 +160,10 @@ def grupo_destacar_receta(request, pk, receta_id):
         RecetaDestacadaGrupo.objects.get_or_create(grupo=grupo, receta=receta, destacado_por=request.user)
 
     return redirect("grupos:grupo_detalle", pk=grupo.pk)
+
+
+def buscar_grupos(request):
+    query = request.GET.get('q', '')
+    grupos = GrupoRecetas.objects.filter(nombre__icontains=query)[:10]  # limitar resultados
+    resultados = [{"id": g.id, "nombre": g.nombre} for g in grupos]
+    return JsonResponse({"resultados": resultados})
