@@ -1,10 +1,12 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from .models import GrupoRecetas, GrupoMiembro, RecetaGrupo, RecetaDestacadaGrupo, PublicacionGrupo
+from .models import GrupoRecetas, GrupoMiembro, RecetaGrupo, RecetaDestacadaGrupo, PublicacionGrupo, PuntosGrupo
 from recipes.models import Receta
 from .forms import GrupoForm, AñadirRecetaGrupoForm
 from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
+from django.db import transaction
+from django.db.models import F
 
 # 📌 Listar todos los grupos (públicos y privados si eres amigo del creador)
 def grupo_list(request):
@@ -13,6 +15,16 @@ def grupo_list(request):
 
 
 # 📌 Detalle de grupo
+
+def sumar_puntos(usuario, grupo, puntos):
+    
+    with transaction.atomic():
+        obj, _ = PuntosGrupo.objects.get_or_create(
+            usuario=usuario,
+            grupo=grupo,
+            defaults={'puntos': 0}
+        )
+        PuntosGrupo.objects.filter(pk=obj.pk).update(puntos=F('puntos') + puntos)
 
 @login_required
 def grupo_detalle(request, pk):
@@ -31,6 +43,7 @@ def grupo_detalle(request, pk):
             PublicacionGrupo.objects.create(
                 grupo=grupo, autor=request.user, contenido=contenido
             )
+            sumar_puntos(request.user, grupo, puntos=5)
             return redirect("grupos:grupo_detalle", pk=grupo.pk)
 
     context = {
@@ -85,6 +98,7 @@ def grupo_agregar_receta(request, pk):
         receta_id = request.POST.get("receta")
         receta = get_object_or_404(Receta, id=receta_id, autor=request.user)
         RecetaGrupo.objects.get_or_create(grupo=grupo, receta=receta)
+        sumar_puntos(request.user, grupo, puntos=10)
         return redirect("grupos:grupo_detalle", pk=grupo.pk)
 
     recetas_usuario = Receta.objects.filter(autor=request.user)

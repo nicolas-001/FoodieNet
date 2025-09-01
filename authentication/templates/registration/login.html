@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load socialaccount %}
 
 {% block title %}Iniciar sesión{% endblock %}
 
@@ -7,6 +8,7 @@
     <h1 style="text-align: center; color: #4CAF50; margin-bottom: 20px;">Bienvenido a FoodieNet</h1>
     <p style="text-align: center; margin-bottom: 20px;">Inicia sesión para continuar</p>
     
+    <!-- Formulario normal de login -->
     <form method="post" style="display: flex; flex-direction: column; gap: 15px;">
         {% csrf_token %}
 
@@ -24,6 +26,16 @@
           Iniciar sesión
         </button>
     </form>
+
+    <!-- Botón de login con Google -->
+    <div style="text-align: center; margin-top: 20px;">
+      <a href="{% provider_login_url 'google' process='login' %}" 
+   style="display: inline-block; background-color: #4285F4; color: white; padding: 10px 0; width: 100%; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 1em;">
+   Iniciar sesión con Google
+</a>
+
+
+    </div>
 
     <p style="text-align: center; margin-top: 15px; font-size: 0.9em;">
       ¿No tienes cuenta?

@@ -4,44 +4,70 @@
 
 {% block content %}
 <div class="max-w-3xl mx-auto py-8">
-  <h2 class="text-3xl font-bold mb-6">🔔 Notificaciones</h2>
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-3xl font-bold">🔔 Notificaciones</h2>
+    {% if notificaciones %}
+      <a href="{% url 'notifications:marcar_todas_leidas' %}" 
+         class="text-sm bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg shadow">
+        Marcar todas como leídas
+      </a>
+    {% endif %}
+  </div>
 
   {% if notificaciones %}
-    <ul class="space-y-4">
+    <ul class="space-y-3">
       {% for notif in notificaciones %}
-        <li class="flex items-start gap-3 p-4 rounded-lg shadow-sm {% if not notif.leida %}bg-yellow-50{% else %}bg-gray-50{% endif %}">
-          
-          <!-- Avatar del usuario que genera la notificación -->
-          {% if notif.usuario.profile.avatar %}
-            <a href="{% url 'users:perfil_usuario' notif.usuario.username %}">
-              <img src="{{ notif.usuario.profile.avatar.url }}" class="w-12 h-12 rounded-full object-cover">
-            </a>
+        <li class="flex items-center gap-3 p-4 rounded-2xl shadow-md transition 
+                   {% if not notif.leida %}bg-white{% else %}bg-gray-100{% endif %}
+                   hover:shadow-lg">
+
+          <!-- Avatar del actor -->
+          {% if notif.actor %}
+            {% if notif.actor.profile.avatar %}
+              <a href="{% url 'users:perfil_usuario' notif.actor.username %}">
+                <img src="{{ notif.actor.profile.avatar.url }}" 
+                     class="w-12 h-12 rounded-full object-cover border border-gray-300">
+              </a>
+            {% else %}
+              <a href="{% url 'users:perfil_usuario' notif.actor.username %}">
+                <img src="/media/perfiles/default.jpeg"
+                     class="w-12 h-12 rounded-full object-cover border border-gray-300">
+              </a>
+            {% endif %}
           {% else %}
-            <a href="{% url 'users:perfil_usuario' notif.usuario.username %}">
-              <div class="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold">
-                {{ notif.usuario.username|slice:":1"|upper }}
-              </div>
-            </a>
+            <img src="/media/perfiles/default.jpeg"
+                 class="w-12 h-12 rounded-full object-cover border border-gray-300">
           {% endif %}
 
           <!-- Contenido de la notificación -->
           <div class="flex-1">
-            <p class="text-gray-800">
+            <p class="text-gray-800 text-sm md:text-base font-medium">
               {{ notif.mensaje }}
             </p>
-            <span class="text-xs text-gray-400">{{ notif.fecha|date:"d M Y H:i" }}</span>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="text-xs text-gray-500">{{ notif.fecha|date:"d M Y H:i" }}</span>
+              {% if not notif.leida %}
+                <a href="{% url 'notifications:marcar_notificacion_leida' notif.pk %}" 
+                   class="text-xs text-blue-500 hover:underline">
+                  Marcar como leída
+                </a>
+              {% endif %}
+            </div>
           </div>
 
-          <!-- Miniatura de receta si existe -->
+          <!-- Miniatura de receta -->
           {% if notif.receta %}
             <a href="{% url 'detalle_receta' notif.receta.pk %}">
               {% if notif.receta.imagen %}
-                <img src="{{ notif.receta.imagen.url }}" class="w-12 h-12 rounded-lg object-cover">
+                <img src="{{ notif.receta.imagen.url }}" 
+                     class="w-12 h-12 rounded-lg object-cover border border-gray-300">
               {% else %}
-                <img src="{% static 'images/receta_placeholder.jpg' %}" class="w-12 h-12 rounded-lg object-cover">
+                <img src="{% static 'images/receta_placeholder.jpg' %}" 
+                     class="w-12 h-12 rounded-lg object-cover border border-gray-300">
               {% endif %}
             </a>
           {% endif %}
+
         </li>
       {% endfor %}
     </ul>
@@ -50,4 +76,3 @@
   {% endif %}
 </div>
 {% endblock %}
-

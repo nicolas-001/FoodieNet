@@ -35,7 +35,31 @@
         {% endif %}
       </div>
     </div>
-
+   {% if es_miembro %}
+    <div class="mb-6">
+      <h3 class="text-2xl font-semibold mb-3">🏆 Ranking del grupo</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for miembro in grupo.puntos.all|dictsortreversed:"puntos" %}
+          <div class="flex items-center gap-3 bg-gradient-to-r from-pink-50 via-orange-50 to-yellow-50 p-3 rounded-xl shadow-md hover:shadow-lg transition">
+            {% if miembro.usuario.profile.avatar %}
+              <img src="{{ miembro.usuario.profile.avatar.url }}" alt="{{ miembro.usuario.username }}" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow">
+            {% else %}
+              <div class="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold border-2 border-white shadow">
+                <a href="{% url 'users:perfil_usuario' miembro.usuario.username %}">
+                {{ miembro.usuario.username|slice:":1"|upper }}</a>
+              </div>
+            {% endif %}
+            <div class="flex-1">
+              <span class="font-semibold text-gray-800">{{ miembro.usuario.username }}</span>
+              <span class="text-sm text-gray-500 ml-2">{{ miembro.puntos }} pts</span>
+            </div>
+          </div>
+        {% empty %}
+          <p class="text-gray-500 col-span-full">Aún no hay puntos acumulados.</p>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
     <!-- Botón Añadir receta -->
     {% if user.is_authenticated and es_miembro %}
       <div class="mb-6 text-center">

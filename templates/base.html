@@ -55,34 +55,51 @@
           {% if user.is_authenticated %}
 
             <!-- Dropdown Notificaciones -->
-            <div class="relative ml-2">
-              <button id="noti-btn" class="relative flex items-center focus:outline-none transition duration-300 text-2xl">
-                🔔
-                {% if notificaciones_total > 0 %}
-                  <span
-                    class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                    {{ notificaciones_total }}
-                  </span>
-                {% endif %}
-              </button>
+<!-- Dropdown Notificaciones -->
+<div class="relative ml-2">
+  <button id="noti-btn" class="relative flex items-center focus:outline-none transition duration-300 text-2xl">
+    🔔
+    {% if notificaciones_total > 0 %}
+      <span
+        class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+        {{ notificaciones_total }}
+      </span>
+    {% endif %}
+  </button>
 
-              <div id="noti-dropdown"
-                   class="absolute right-0 mt-2 w-80 bg-white text-gray-800 rounded-lg shadow-lg hidden z-50">
-                <div class="p-2 font-semibold border-b">Notificaciones</div>
-                <ul class="max-h-64 overflow-y-auto">
-                  {% for n in notificaciones %}
-                    <li class="p-2 hover:bg-gray-100 border-b flex flex-col">
-                      <span>{{ n.mensaje }}</span>
-                      <span class="text-xs text-gray-400">{{ n.fecha|date:"d M Y H:i" }}</span>
-                    </li>
-                  {% empty %}
-                    <li class="p-2 text-gray-500">No tienes notificaciones</li>
-                  {% endfor %}
-                </ul>
-                <a href="{% url 'notifications:ver_todas' %}"
-                   class="block text-center p-2 bg-gray-100 hover:bg-gray-200 rounded-b-lg">Ver todas</a>
-              </div>
-            </div>
+  <div id="noti-dropdown"
+       class="absolute right-0 mt-2 w-80 text-gray-800 rounded-lg shadow-lg hidden z-50 border border-gray-200 bg-white">
+
+    <div class="p-2 font-semibold border-b flex justify-between items-center">
+      <span>Notificaciones</span>
+      <button onclick="marcarTodasLeidas()" class="text-sm text-blue-500 hover:underline">Marcar todas como leídas</button>
+    </div>
+
+    <ul id="noti-list" class="max-h-64 overflow-y-auto">
+      {% for n in notificaciones %}
+        {% if not n.leida %}
+          <li class="p-2 hover:bg-gray-100 border-b flex flex-col cursor-pointer"
+              onclick="marcarLeida({{ n.pk }}, this)">
+            <span>{{ n.mensaje }}</span>
+            <span class="text-xs text-gray-400">{{ n.fecha|date:"d M Y H:i" }}</span>
+          </li>
+        {% endif %}
+      {% empty %}
+        <li class="p-2 text-gray-500">No tienes notificaciones</li>
+      {% endfor %}
+    </ul>
+
+    <!-- Ver todas fuera del ul y con z-index -->
+    <div class="relative z-50">
+      <a href="{% url 'notifications:ver_todas' %}"
+         class="block text-center p-2 bg-gray-100 hover:bg-gray-200 rounded-b-lg">
+         Ver todas
+      </a>
+    </div>
+
+  </div>
+</div>
+
 
             <!-- Dropdown Perfil -->
             <div class="relative ml-2">
@@ -105,6 +122,7 @@
             </div>
 
             <script>
+              // Dropdown toggles
               const perfilBtn = document.getElementById('perfil-btn');
               const perfilDropdown = document.getElementById('perfil-dropdown');
               perfilBtn.addEventListener('click', function(e) {
@@ -112,24 +130,57 @@
                 perfilDropdown.classList.toggle('hidden');
               });
 
-              const notiBtn = document.getElementById('noti-btn');
-              const notiDropdown = document.getElementById('noti-dropdown');
-              notiBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                notiDropdown.classList.toggle('hidden');
-              });
+  
+const notiBtn = document.getElementById('noti-btn');
+const notiDropdown = document.getElementById('noti-dropdown');
 
-              document.addEventListener('click', function() {
-                perfilDropdown.classList.add('hidden');
-                notiDropdown.classList.add('hidden');
-              });
+  // Toggle dropdown
+  notiBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    notiDropdown.classList.toggle('hidden');
+  });
 
-              document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                  perfilDropdown.classList.add('hidden');
-                  notiDropdown.classList.add('hidden');
-                }
-              });
+  // Cerrar dropdown al hacer clic fuera
+  document.addEventListener('click', function(e) {
+    if (!notiDropdown.contains(e.target) && e.target !== notiBtn) {
+      notiDropdown.classList.add('hidden');
+    }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      notiDropdown.classList.add('hidden');
+    }
+  });
+
+  // Marcar notificación individual como leída
+  function marcarLeida(pk, element) {
+    fetch(`/notificaciones/marcar-leida/${pk}/`)
+      .then(() => {
+        element.remove(); // elimina la notificación del DOM
+        const contador = document.querySelector('#noti-btn span');
+        if (contador) {
+          let total = parseInt(contador.textContent) - 1;
+          if (total > 0) {
+            contador.textContent = total;
+          } else {
+            contador.remove();
+          }
+        }
+      });
+  }
+
+  // Marcar todas las notificaciones como leídas
+  function marcarTodasLeidas() {
+    fetch(`/notificaciones/marcar-todas/`)
+      .then(() => {
+        const lista = document.getElementById('noti-list');
+        lista.innerHTML = '<li class="p-2 text-gray-500">No tienes notificaciones</li>';
+        const contador = document.querySelector('#noti-btn span');
+        if (contador) contador.remove();
+      });
+  }
+
             </script>
 
           {% else %}

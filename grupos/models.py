@@ -61,3 +61,14 @@ class RecetaDestacadaGrupo(models.Model):
 
     class Meta:
         unique_together = ('grupo', 'receta')
+    
+class PuntosGrupo(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    grupo = models.ForeignKey(GrupoRecetas, on_delete=models.CASCADE, related_name="puntos")
+    puntos = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ("usuario", "grupo")
+
+    def __str__(self):
+        return f"{self.usuario.username} - {self.grupo.nombre}: {self.puntos} pts"

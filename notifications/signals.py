@@ -11,7 +11,9 @@ def notificar_like(sender, instance, created, **kwargs):
         receta = instance.receta
         if receta.autor != instance.user:
             Notificacion.objects.create(
-                usuario=receta.autor,
+                usuario=receta.autor,  # receptor
+                actor=instance.user,   # quien da el like
+                receta=receta,         # receta involucrada
                 tipo='like',
                 mensaje=f"{instance.user.username} le dio 👍 a tu receta '{receta.titulo}'."
             )
@@ -23,7 +25,9 @@ def notificar_comentario(sender, instance, created, **kwargs):
         receta = instance.receta
         if receta.autor != instance.autor:
             Notificacion.objects.create(
-                usuario=receta.autor,
+                usuario=receta.autor,  # receptor
+                actor=instance.autor,  # quien comenta
+                receta=receta,         # receta involucrada
                 tipo='comentario',
                 mensaje=f"{instance.autor.username} comentó en tu receta '{receta.titulo}': {instance.texto[:50]}..."
             )
@@ -36,7 +40,8 @@ def notificar_publicacion_grupo(sender, instance, created, **kwargs):
         miembros = grupo.miembros.exclude(pk=instance.autor.pk)  # no notificar al autor
         for miembro in miembros:
             Notificacion.objects.create(
-                usuario=miembro.user,  # Asegúrate que aquí sea 'user' según tu modelo de miembros
+                usuario=miembro,       # receptor
+                actor=instance.autor,  # quien publica
                 tipo='publicacion_grupo',
                 mensaje=f"{instance.autor.username} publicó en el grupo '{grupo.nombre}': {instance.contenido[:50]}..."
             )

@@ -42,7 +42,13 @@ INSTALLED_APPS = [
     'rest_framework',
     "grupos",
     'notifications.apps.NotificationsConfig',
+    
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
     ]
+SITE_ID = 1
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
@@ -50,6 +56,20 @@ REST_FRAMEWORK = {
     ]
 }
 
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": [
+            "profile",
+            "email",
+        ],
+        "AUTH_PARAMS": {
+            "access_type": "online",  # "offline" si quieres refresh_token
+            # "prompt": "consent"    # si pides refresh token a cada login
+        },
+    }
+}
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_LOGIN_ON_GET = True  # Para que no espere POST
 
 TAILWIND_APP_NAME = "theme"
 
@@ -58,10 +78,12 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    "allauth.account.middleware.AccountMiddleware",
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django_browser_reload.middleware.BrowserReloadMiddleware',
+    
 ]
 
 ROOT_URLCONF = 'FoodieNet.urls'
@@ -115,6 +137,10 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
+]
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",  # login normal
+    "allauth.account.auth_backends.AuthenticationBackend",  # login social
 ]
 
 MEDIA_URL = '/media/'
