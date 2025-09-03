@@ -13,24 +13,28 @@
         <h3 class="text-2xl font-semibold text-gray-800 mb-4">Recetas del plan</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {% for receta in plan.recetas.all %}
-            <div class="border rounded-xl overflow-hidden shadow-sm bg-white">
-                {% if receta.imagen %}
-                    <img src="{{ receta.imagen.url }}" alt="{{ receta.titulo }}" class="w-full h-32 object-cover">
-                {% else %}
-                    <div class="w-full h-32 flex items-center justify-center bg-gray-200 text-gray-500 text-2xl">
-                        📷
+                {% if receta.pk %}
+                <a href="{% url 'detalle_receta' receta.pk %}" class="block transform hover:-translate-y-1 hover:shadow-lg transition duration-300">
+                    <div class="border rounded-xl overflow-hidden shadow-sm bg-white hover:bg-gray-50 transition-colors">
+                        {% if receta.imagen %}
+                            <img src="{{ receta.imagen.url }}" alt="{{ receta.titulo }}" class="w-full h-32 object-cover">
+                        {% else %}
+                            <div class="w-full h-32 flex items-center justify-center bg-gray-200 text-gray-500 text-2xl">
+                                📷
+                            </div>
+                        {% endif %}
+                        <div class="p-4 space-y-1">
+                            <strong class="text-gray-900">{{ receta.titulo }}</strong>
+                            <p class="text-sm text-gray-600 mt-1">{{ receta.calorias_por_persona|floatformat:0 }} kcal</p>
+                            <p class="text-xs text-gray-500">
+                                <span class="text-blue-600">P: {{ receta.proteinas_por_persona|floatformat:1 }}g</span> · 
+                                <span class="text-green-600">G: {{ receta.grasas_por_persona|floatformat:1 }}g</span> · 
+                                <span class="text-orange-600">C: {{ receta.carbohidratos_por_persona|floatformat:1 }}g</span>
+                            </p>
+                        </div>
                     </div>
+                </a>
                 {% endif %}
-                <div class="p-4 space-y-1">
-                    <strong class="text-gray-900">{{ receta.titulo }}</strong>
-                    <p class="text-sm text-gray-600 mt-1">{{ receta.calorias_por_persona|floatformat:0 }} kcal</p>
-                    <p class="text-xs text-gray-500">
-                        <span class="text-blue-600">P: {{ receta.proteinas_por_persona|floatformat:1 }}g</span> · 
-                        <span class="text-green-600">G: {{ receta.grasas_por_persona|floatformat:1 }}g</span> · 
-                        <span class="text-orange-600">C: {{ receta.carbohidratos_por_persona|floatformat:1 }}g</span>
-                    </p>
-                </div>
-            </div>
             {% empty %}
             <p class="text-gray-500">No hay recetas en este plan.</p>
             {% endfor %}
@@ -83,10 +87,63 @@
         {% endif %}
     </div>
 
+    <!-- Botón Premium: Sugerencias de recetas según objetivo -->
+    {% if sugerencias_objetivo %}
+    <div class="text-center mb-8">
+        <button id="btnSugerencias" class="px-6 py-3 bg-indigo-600 text-white rounded-xl shadow-lg hover:bg-indigo-700 transition">
+            🎯 Sugerencias para tu objetivo
+        </button>
+    </div>
+
+    <!-- Modal de sugerencias -->
+    <div id="modalSugerencias" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-6 relative shadow-2xl overflow-y-auto max-h-[80vh]">
+            <button id="cerrarModal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-xl font-bold">&times;</button>
+            <h3 class="text-2xl font-semibold mb-4 text-gray-800">Sugerencias según tu objetivo</h3>
+            <p class="text-gray-600 mb-4">Objetivo: <span class="font-bold">{{ objetivo_usuario }}</span></p>
+
+            <ul class="space-y-4">
+                {% for s in sugerencias_objetivo %}
+                    {% if s.tipo == "añadir" %}
+                    <li class="flex justify-between items-center bg-gray-50 p-4 rounded-xl shadow hover:shadow-md transition">
+                        <div>
+                            <strong class="text-gray-900">{{ s.receta.titulo }}</strong>
+                            <p class="text-sm text-gray-600">
+                                Añádela para cubrir ~{{ s.kcal_objetivo|floatformat:0 }} kcal 
+                                (suma {{ s.kcal_receta|floatformat:0 }} kcal por porción)
+                            </p>
+                        </div>
+                        <a href="{% url 'detalle_receta' s.receta.pk %}" class="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                            Ver receta
+                        </a>
+                    </li>
+                    {% elif s.tipo == "sustituir" %}
+                    <li class="flex justify-between items-center bg-gray-50 p-4 rounded-xl shadow hover:shadow-md transition">
+                        <div>
+                            <strong class="text-gray-900">{{ s.receta_original.titulo }}</strong> ➡ 
+                            <strong>{{ s.receta_sugerida.titulo }}</strong>
+                            <p class="text-sm text-gray-600">
+                                Sustitúyela para reducir ~{{ s.kcal_objetivo|floatformat:0 }} kcal 
+                                (ahorrar {{ s.kcal_reducidas|floatformat:0 }} kcal por porción)
+                            </p>
+                        </div>
+                        <a href="{% url 'detalle_receta' s.receta_sugerida.pk %}" class="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                            Ver receta
+                        </a>
+                    </li>
+                    {% endif %}
+                {% empty %}
+                    <li class="text-gray-500">No hay sugerencias disponibles para tu objetivo.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Gráfico comparativo calorías -->
     <div class="bg-white shadow-xl rounded-2xl p-6 mb-10 animate-fadeIn">
         <h3 class="text-2xl font-semibold mb-4 text-gray-800">Comparación Calorías Plan vs TDEE</h3>
-        <canvas id="caloriasChart" class="w-full h-64"></canvas>
+        <canvas id="caloriasChart" class="w-full h-40 sm:h-40 md:h-52 lg:h-56"></canvas>
     </div>
 
     {% else %}
@@ -98,7 +155,7 @@
     <!-- Distribución de macronutrientes -->
     <div class="bg-white shadow-xl rounded-2xl p-6 animate-fadeIn">
         <h3 class="text-2xl font-semibold mb-4 text-gray-800">Distribución de Macronutrientes</h3>
-        <canvas id="macrosChart" class="w-full h-64"></canvas>
+        <canvas id="macrosChart" class="w-full h-30 sm:h-30 md:h-52 lg:h-56"></canvas>
     </div>
 
 </div>
@@ -109,7 +166,7 @@
 .animate-fadeIn { animation: fadeIn 1s ease-in-out; }
 </style>
 
-<!-- Scripts Chart.js -->
+<!-- Scripts Chart.js y Modal -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 {% if tdee %}
@@ -118,11 +175,7 @@ new Chart(ctxCal, {
     type: 'bar',
     data: {
         labels: ['Plan', 'TDEE'],
-        datasets: [{
-            label: 'Calorías',
-            data: [{{ total_calorias }}, {{ tdee }}],
-            backgroundColor: ['#34D399', '#3B82F6'] // verde y azul Tailwind
-        }]
+        datasets: [{ label: 'Calorías', data: [{{ total_calorias }}, {{ tdee }}], backgroundColor: ['#34D399', '#3B82F6'] }]
     },
     options: { responsive: true, scales: { y: { beginAtZero: true } }, animation: { duration: 1000 } }
 });
@@ -133,16 +186,18 @@ new Chart(ctx, {
     type: 'pie',
     data: {
         labels: ['Proteínas', 'Grasas', 'Carbohidratos'],
-        datasets: [{
-            data: [{{ total_prot }}, {{ total_grasas }}, {{ total_carbs }}],
-            backgroundColor: ['#3B82F6', '#EF4444', '#FACC15'] // azul, rojo, amarillo Tailwind
-        }]
+        datasets: [{ data: [{{ total_prot }}, {{ total_grasas }}, {{ total_carbs }}], backgroundColor: ['#3B82F6', '#EF4444', '#FACC15'] }]
     },
-    options: {
-        responsive: true,
-        plugins: { legend: { position: 'bottom' } },
-        animation: { animateScale: true, animateRotate: true }
-    }
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } }, animation: { animateScale: true, animateRotate: true } }
 });
+
+// Modal premium
+const btnSugerencias = document.getElementById('btnSugerencias');
+const modalSugerencias = document.getElementById('modalSugerencias');
+const cerrarModal = document.getElementById('cerrarModal');
+
+if (btnSugerencias) btnSugerencias.addEventListener('click', () => modalSugerencias.classList.remove('hidden'));
+if (cerrarModal) cerrarModal.addEventListener('click', () => modalSugerencias.classList.add('hidden'));
+modalSugerencias?.addEventListener('click', (e) => { if (e.target === modalSugerencias) modalSugerencias.classList.add('hidden'); });
 </script>
 {% endblock %}

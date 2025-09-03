@@ -7,6 +7,7 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.db import transaction
 from django.db.models import F
+from django.db.models import Count
 
 # 📌 Listar todos los grupos (públicos y privados si eres amigo del creador)
 def grupo_list(request):
@@ -25,6 +26,8 @@ def sumar_puntos(usuario, grupo, puntos):
             defaults={'puntos': 0}
         )
         PuntosGrupo.objects.filter(pk=obj.pk).update(puntos=F('puntos') + puntos)
+
+
 
 @login_required
 def grupo_detalle(request, pk):
@@ -46,13 +49,20 @@ def grupo_detalle(request, pk):
             sumar_puntos(request.user, grupo, puntos=5)
             return redirect("grupos:grupo_detalle", pk=grupo.pk)
 
+    # 🔹 Recetas destacadas: ordenadas por número de likes
+    recetas_destacadas = (
+        Receta.objects.filter(id__in=[r.id for r in recetas])
+        .annotate(num_likes=Count("likes"))
+        .order_by("-num_likes")[:3]
+    )
+
     context = {
         "grupo": grupo,
         "miembros": miembros,
         "recetas": recetas,
         "es_miembro": es_miembro,
         "publicaciones": publicaciones,
-        "recetas_destacadas": grupo.recetas_destacadas.all(),
+        "recetas_destacadas": recetas_destacadas,
     }
     return render(request, "grupos/grupo_detail.html", context)
 

@@ -1,7 +1,7 @@
 # recipes/views.py
 
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import F, Count, Q
+from django.db.models import F, Count, Q, Func
 from django.contrib.auth.decorators import login_required
 from django.views.generic import UpdateView
 from django.conf import settings
@@ -744,10 +744,10 @@ def crear_plan_diario(request):
 
 
 @login_required
+@login_required
 def ver_plan_diario(request, pk):
     plan = get_object_or_404(PlanDiario, pk=pk, usuario=request.user)
 
-    # Usamos valores precalculados en el modelo
     total_calorias = plan.calorias_totales
     total_prot = plan.proteinas_totales
     total_grasas = plan.grasas_totales
@@ -757,6 +757,7 @@ def ver_plan_diario(request, pk):
     tdee = None
     estado = "No disponible"
     recomendaciones = []
+    sugerencias_objetivo = []
 
     if perfil:
         peso = perfil.peso or 70
@@ -764,7 +765,6 @@ def ver_plan_diario(request, pk):
         edad = perfil.edad or 25
         sexo = perfil.sexo or "M"
 
-        # Fórmula Mifflin-St Jeor
         if sexo == "M":
             bmr = 10 * peso + 6.25 * altura - 5 * edad + 5
         else:
@@ -773,48 +773,40 @@ def ver_plan_diario(request, pk):
         factor_actividad = getattr(perfil, "factor_actividad", 1.5)
         tdee = round(bmr * factor_actividad, 1)
 
-        # Diferencia calórica
         diferencia = total_calorias - tdee
 
-        # Estado y recomendaciones de calorías
+        # --- Estado y recomendaciones generales ---
         if diferencia < -500:
             estado = "Déficit calórico"
-            recomendaciones.append(
-                f"Tu déficit es demasiado agresivo. Aumenta ~{abs(diferencia) - 500} kcal para un déficit moderado."
-            )
+            recomendaciones.append(f"Déficit agresivo: aumenta ~{abs(diferencia)-500} kcal para un déficit moderado.")
         elif -500 <= diferencia <= -200:
             estado = "Déficit calórico"
-            recomendaciones.append("Buen déficit moderado para perder grasa de forma sostenible.")
+            recomendaciones.append("Déficit moderado adecuado para perder grasa sosteniblemente.")
         elif -200 < diferencia < 200:
             estado = "Mantenimiento"
-            recomendaciones.append("Tus calorías están cerca de tu gasto, ideal para mantener el peso.")
+            recomendaciones.append("Calorías cerca de tu TDEE, ideal para mantener el peso.")
         elif 200 <= diferencia <= 500:
             estado = "Superávit calórico"
-            recomendaciones.append("Buen superávit moderado para ganar músculo sin excesiva grasa.")
+            recomendaciones.append("Superávit moderado, ideal para ganar músculo controladamente.")
         elif diferencia > 500:
             estado = "Superávit calórico"
-            recomendaciones.append(
-                f"Tu superávit es muy alto. Reduce ~{diferencia - 500} kcal para un volumen más controlado."
-            )
+            recomendaciones.append(f"Superávit alto: reduce ~{diferencia-500} kcal para volumen más controlado.")
 
         # --- Evaluación de macros ---
-        # Proteínas recomendadas
         prot_min = round(1.6 * peso, 1)
         prot_max = round(2.2 * peso, 1)
         if total_prot < prot_min:
-            recomendaciones.append(f"Proteínas bajas: añade al menos {prot_min - total_prot:.1f} g más al día.")
+            recomendaciones.append(f"Proteínas bajas: añade {prot_min - total_prot:.1f} g más al día.")
         elif total_prot > prot_max:
             recomendaciones.append("Proteínas algo altas: no necesitas tanto para progresar.")
 
-        # Grasa recomendada (20–35% calorías)
         grasas_kcal = total_grasas * 9
         grasas_pct = (grasas_kcal / total_calorias * 100) if total_calorias else 0
         if grasas_pct < 20:
-            recomendaciones.append("Grasas muy bajas: aumenta frutos secos, aceite de oliva o aguacate.")
+            recomendaciones.append("Grasas muy bajas: añade frutos secos, aceite de oliva o aguacate.")
         elif grasas_pct > 35:
-            recomendaciones.append("Grasas algo altas: reduce fritos o comidas muy grasientas.")
+            recomendaciones.append("Grasas algo altas: reduce fritos o comidas grasientas.")
 
-        # Carbohidratos (resto calorías)
         carbs_kcal = total_carbs * 4
         if total_calorias > 0:
             carbs_pct = (carbs_kcal / total_calorias * 100)
@@ -822,6 +814,50 @@ def ver_plan_diario(request, pk):
                 recomendaciones.append("Carbohidratos bajos: añade más arroz, pasta, pan o frutas.")
             elif carbs_pct > 60:
                 recomendaciones.append("Carbohidratos altos: equilibra con más proteínas y grasas saludables.")
+
+        # --- Recomendaciones Premium con calorías explícitas ---
+        ids_recetas_plan = plan.recetas.values_list('id', flat=True)
+
+        if diferencia < -50:  # Déficit: sugerir añadir calorías
+            kcal_faltantes = abs(diferencia)
+            receta_sugerida = (
+                Receta.objects.exclude(id__in=ids_recetas_plan)
+                .filter(calorias__lte=kcal_faltantes + 50)
+                .annotate(diferencia_abs=Func(F('calorias') - kcal_faltantes, function='ABS'))
+                .order_by('diferencia_abs')
+                .first()
+            )
+            if receta_sugerida:
+                sugerencias_objetivo.append({
+                    "tipo": "añadir",
+                    "receta": receta_sugerida,
+                    "kcal_objetivo": kcal_faltantes,
+                    "kcal_receta": receta_sugerida.calorias_por_persona
+                })
+
+        elif diferencia > 50:  # Superávit: sugerir sustituir para bajar calorías
+            receta_a_reducir = (
+                plan.recetas.filter(calorias__gte=diferencia)
+                .order_by('-calorias')
+                .first()
+            )
+            if receta_a_reducir:
+                receta_sustituta = (
+                    Receta.objects.exclude(id__in=ids_recetas_plan)
+                    .filter(calorias__lt=receta_a_reducir.calorias)
+                    .annotate(diferencia_abs=Func(F('calorias') - receta_a_reducir.calorias, function='ABS'))
+                    .order_by('diferencia_abs')
+                    .first()
+                )
+                if receta_sustituta:
+                    kcal_reducidas = receta_a_reducir.calorias_por_persona - receta_sustituta.calorias_por_persona
+                    sugerencias_objetivo.append({
+                        "tipo": "sustituir",
+                        "receta_original": receta_a_reducir,
+                        "receta_sugerida": receta_sustituta,
+                        "kcal_objetivo": diferencia,
+                        "kcal_reducidas": kcal_reducidas
+                    })
 
     context = {
         "plan": plan,
@@ -832,9 +868,10 @@ def ver_plan_diario(request, pk):
         "tdee": tdee,
         "estado": estado,
         "recomendaciones": recomendaciones,
+        "sugerencias_objetivo": sugerencias_objetivo,
     }
-    return render(request, "recipes/ver_plan_diario.html", context)
 
+    return render(request, "recipes/ver_plan_diario.html", context)
 
 
 @login_required
@@ -864,4 +901,17 @@ def eliminar_plan_diario(request, pk):
         plan.delete()
         return JsonResponse({"status": "ok"})
     return JsonResponse({"status": "error", "msg": "Método no permitido"}, status=405)
+
+@login_required
+def receta_info_json(request, receta_id):
+    receta = get_object_or_404(Receta, id=receta_id)
+    data = {
+        "id": receta.id,
+        "titulo": receta.titulo,
+        "calorias": receta.calorias_por_persona,
+        "proteinas": receta.proteinas_por_persona,
+        "grasas": receta.grasas_por_persona,
+        "carbohidratos": receta.carbohidratos_por_persona,
+    }
+    return JsonResponse(data)
 
