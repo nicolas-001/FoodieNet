@@ -13,6 +13,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from django.db.models import Q, Count
+from datetime import datetime
 
 @login_required
 def perfil(request):
@@ -107,28 +108,68 @@ from recipes.models import Receta  # importa tu modelo de Receta
 def buscar_usuarios_y_recetas(request):
     query = request.GET.get('query')
     
+    # --- Usuarios ---
     usuarios = User.objects.none()
-    recetas = Receta.objects.none()
-
     if query:
         usuarios = User.objects.filter(username__icontains=query).order_by('username')
-        recetas = Receta.objects.filter(
-            titulo__icontains=query
-        ).order_by('titulo')
-
-    # Paginación usuarios (10 por página)
+    
     paginator_usuarios = Paginator(usuarios, 10)
     page_number_usuarios = request.GET.get('page_usuarios')
     page_obj_usuarios = paginator_usuarios.get_page(page_number_usuarios)
 
-    # Paginación recetas (opcional, 10 por página)
-    paginator_recetas = Paginator(recetas, 10)
+    # --- Recetas ---
+    recetas = Receta.objects.filter(es_publica=True)
+
+    # Filtros avanzados para recetas
+    dificultad = request.GET.get('dificultad')
+    calorias_min = request.GET.get('calorias_min')
+    calorias_max = request.GET.get('calorias_max')
+    proteinas_min = request.GET.get('proteinas_min')
+    proteinas_max = request.GET.get('proteinas_max')
+    grasas_min = request.GET.get('grasas_min')
+    grasas_max = request.GET.get('grasas_max')
+    carbohidratos_min = request.GET.get('carbohidratos_min')
+    carbohidratos_max = request.GET.get('carbohidratos_max')
+    tags = request.GET.get('tags')
+    fecha_desde = request.GET.get('fecha_desde')
+    fecha_hasta = request.GET.get('fecha_hasta')
+
+    if query:
+        recetas = recetas.filter(titulo__icontains=query)
+    if dificultad and dificultad != 'todas':
+        recetas = recetas.filter(dificultad=dificultad)
+    if calorias_min:
+        recetas = recetas.filter(calorias__gte=float(calorias_min))
+    if calorias_max:
+        recetas = recetas.filter(calorias__lte=float(calorias_max))
+    if proteinas_min:
+        recetas = recetas.filter(proteinas__gte=float(proteinas_min))
+    if proteinas_max:
+        recetas = recetas.filter(proteinas__lte=float(proteinas_max))
+    if grasas_min:
+        recetas = recetas.filter(grasas__gte=float(grasas_min))
+    if grasas_max:
+        recetas = recetas.filter(grasas__lte=float(grasas_max))
+    if carbohidratos_min:
+        recetas = recetas.filter(carbohidratos__gte=float(carbohidratos_min))
+    if carbohidratos_max:
+        recetas = recetas.filter(carbohidratos__lte=float(carbohidratos_max))
+    if tags:
+        for tag in tags.split(','):
+            recetas = recetas.filter(tags__name__icontains=tag.strip())
+    if fecha_desde:
+        recetas = recetas.filter(fecha_creacion__date__gte=datetime.strptime(fecha_desde, '%Y-%m-%d'))
+    if fecha_hasta:
+        recetas = recetas.filter(fecha_creacion__date__lte=datetime.strptime(fecha_hasta, '%Y-%m-%d'))
+
+    paginator_recetas = Paginator(recetas.order_by('-fecha_creacion'), 10)
     page_number_recetas = request.GET.get('page_recetas')
     page_obj_recetas = paginator_recetas.get_page(page_number_recetas)
 
     return render(request, 'users/buscar_usuarios_y_recetas.html', {
         'page_obj_usuarios': page_obj_usuarios,
         'page_obj_recetas': page_obj_recetas,
+        'filtros': request.GET,
         'query': query
     })
 

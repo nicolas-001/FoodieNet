@@ -121,12 +121,12 @@ def grupo_agregar_receta(request, pk):
 def grupo_editar(request, pk):
     grupo = get_object_or_404(GrupoRecetas, pk=pk, creador=request.user)  # solo el creador puede editar
     if request.method == "POST":
-        form = GrupoRecetasForm(request.POST, instance=grupo)
+        form = GrupoForm(request.POST, instance=grupo)
         if form.is_valid():
             form.save()
             return redirect("grupos:grupo_detalle", pk=grupo.pk)
     else:
-        form = GrupoRecetasForm(instance=grupo)
+        form = GrupoForm(instance=grupo)
     return render(request, "grupos/grupo_form.html", {"form": form, "grupo": grupo})
 
 @login_required

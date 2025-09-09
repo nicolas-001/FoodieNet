@@ -9,7 +9,7 @@ def ruta_foto_perfil(instance, filename):
 
 class Perfil(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    foto = models.ImageField(upload_to="perfiles", blank=True, null=True)
+    foto = models.ImageField(upload_to="perfiles", blank=True, null=True, default="perfiles/default.jpeg")
     biografia = models.TextField(blank=True)
     edad = models.PositiveIntegerField(blank=True, null=True)
     peso = models.FloatField(blank=True, null=True)  # kg

@@ -33,6 +33,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from taggit.models import Tag
 from django.template.loader import render_to_string
+import random
 
 def obtener_recetas_base_para_usuario(usuario, top_n=3):
     liked_recetas = Receta.objects.filter(likes__user=usuario).order_by('-likes__creado')[:top_n]
@@ -611,29 +612,32 @@ from .models import Receta, Like, Favorito
 
 nltk.download('stopwords')
 
-def obtener_recomendaciones_generales(user):
+def obtener_recomendaciones_generales(user, top_n=3, pool_size=10):
+    """
+    Obtiene recomendaciones dinámicas para el usuario:
+    - top_n: número de recetas a mostrar
+    - pool_size: tamaño del conjunto de recetas relevantes para rotar
+    """
     # 1. Obtener IDs de recetas que el usuario ha marcado con like y favorito
     recetas_liked_ids = Like.objects.filter(user=user).values_list('receta_id', flat=True)
     recetas_fav_ids = Favorito.objects.filter(user=user).values_list('receta_id', flat=True)
     recetas_ids = list(set(recetas_liked_ids) | set(recetas_fav_ids))
 
-    # 2. Excluir recetas del propio usuario SIEMPRE
+    # 2. Excluir recetas del propio usuario
     recetas_ids_autor = Receta.objects.filter(autor=user).values_list('id', flat=True)
     recetas_ids = list(set(recetas_ids) - set(recetas_ids_autor))
 
+    # 3. Recetas base si no tiene likes ni favoritos
     if not recetas_ids:
-        # Si no tiene likes ni favoritos válidos, usamos la auxiliar
-        base_recetas = obtener_recetas_base_para_usuario(user, top_n=3)
+        base_recetas = obtener_recetas_base_para_usuario(user, top_n=pool_size)
         if base_recetas:
-            return list(base_recetas)
-        # Si tampoco tiene base, devolvemos recetas populares
-        return list(Receta.objects.filter(es_publica=True).exclude(autor=user).order_by('-visitas')[:3])
+            return random.sample(list(base_recetas), min(top_n, len(base_recetas)))
+        return list(Receta.objects.filter(es_publica=True).exclude(autor=user).order_by('-visitas')[:top_n])
 
-    # 3. Obtener recetas base del usuario (liked/favoritos)
     recetas_usuario = Receta.objects.filter(id__in=recetas_ids)
     spanish_stopwords = stopwords.words('spanish')
 
-    # 4. Crear corpus de texto para ML (tags + ingredientes)
+    # Corpus de texto (tags + ingredientes)
     def get_corpus(receta):
         tags = " ".join(tag.name for tag in receta.tags.all())
         ingredientes = receta.ingredientes or ""
@@ -641,42 +645,37 @@ def obtener_recomendaciones_generales(user):
 
     perfil_texto = " ".join(get_corpus(r) for r in recetas_usuario)
 
-    # 5. Obtener todas las recetas públicas que no sean del usuario y que no estén ya en su set
-    recetas_publicas = Receta.objects.filter(es_publica=True).exclude(
-        Q(id__in=recetas_ids) | Q(autor=user)
-    )
-
+    # Todas las recetas públicas no propias y no ya en likes/favoritos
+    recetas_publicas = Receta.objects.filter(es_publica=True).exclude(Q(id__in=recetas_ids) | Q(autor=user))
     if not recetas_publicas.exists():
         return []
 
     corpus_recetas = [get_corpus(r) for r in recetas_publicas]
 
-    # 6. Vectorizamos perfil y corpus con Tfidf
+    # Vectorizamos perfil y corpus
     vectorizer = TfidfVectorizer(stop_words=spanish_stopwords)
     vectores = vectorizer.fit_transform([perfil_texto] + corpus_recetas)
-
     perfil_vector = vectores[0]
     recetas_vectors = vectores[1:]
 
-    # 7. Calcular similitud coseno
     similitudes = cosine_similarity(perfil_vector, recetas_vectors).flatten()
-
-    # 8. Empaquetar resultados con IDs y similitud
     recetas_similares = list(zip(recetas_publicas, similitudes))
-
-    # 9. Ordenar por similitud descendente
     recetas_similares.sort(key=lambda x: x[1], reverse=True)
 
-    # 10. Tomamos las top recomendaciones similares
-    recomendaciones = [r[0] for r in recetas_similares[:3]]
+    # Tomamos un pool más grande de recetas relevantes
+    pool = [r[0] for r in recetas_similares[:pool_size]]
 
-    # 11. Si faltan para llegar a 3, rellenamos con la función auxiliar
-    faltantes = 3 - len(recomendaciones)
+    # Si faltan para llenar el pool, completamos con la función auxiliar
+    faltantes = pool_size - len(pool)
     if faltantes > 0:
         recetas_resto = obtener_recetas_base_para_usuario(user, top_n=faltantes)
-        recomendaciones.extend(list(recetas_resto))
+        pool.extend(list(recetas_resto))
+
+    # Finalmente, rotamos seleccionando aleatoriamente 'top_n' recetas del pool
+    recomendaciones = random.sample(pool, min(top_n, len(pool)))
 
     return recomendaciones
+
 
 
 @api_view(['GET'])

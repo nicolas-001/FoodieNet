@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ receta.titulo }} - FoodieNet{% endblock %}
 
@@ -10,12 +11,17 @@
     <h1 class="text-4xl font-extrabold text-gray-900">{{ receta.titulo }}</h1>
     <p class="text-sm text-gray-500 flex items-center gap-1">👁️ {{ receta.visitas }}</p>
   </div>
-
   <!-- Autor -->
   <div class="flex items-center gap-4 mb-6">
-    <img src="{{ receta.autor.perfil.foto.url }}"
-         alt="Foto de {{ receta.autor.username }}"
-         class="w-14 h-14 rounded-full object-cover shadow-md">
+    {% if receta.autor.perfil.foto %}
+      <img src="{{ receta.autor.perfil.foto.url }}"
+           alt="Foto de {{ receta.autor.username }}"
+           class="w-14 h-14 rounded-full object-cover shadow-md">
+    {% else %}
+      <img src="{% static 'img/default_user.png' %}"
+           alt="Foto de {{ receta.autor.username }}"
+           class="w-14 h-14 rounded-full object-cover shadow-md">
+    {% endif %}
 
     <div>
       <p class="text-gray-500 text-sm">Autor</p>
@@ -53,13 +59,13 @@
     </div>
   {% endif %}
 
-  <!-- Imagen -->
-  {% if receta.imagen %}
-    <div class="my-8 flex justify-center">
-      <img src="{{ receta.imagen.url }}" alt="{{ receta.titulo }}"
-           class="max-h-96 rounded-2xl shadow-md object-cover">
-    </div>
-  {% endif %}
+{% if receta.imagen %}
+  <div class="my-8 flex justify-center">
+    <img src="{{ receta.imagen.url }}" alt="{{ receta.titulo }}"
+         class="w-full h-96 rounded-2xl shadow-md object-cover">
+  </div>
+{% endif %}
+
 
   <!-- Descripción / Ingredientes / Pasos -->
   <div class="space-y-6 text-gray-800 leading-relaxed mb-8">

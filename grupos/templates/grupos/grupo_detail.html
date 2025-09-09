@@ -39,7 +39,7 @@
     <div class="mb-6">
       <h3 class="text-2xl font-semibold mb-3">🏆 Ranking del grupo</h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {% for miembro in grupo.puntos.all|dictsortreversed:"puntos" %}
+        {% for miembro in grupo.puntos.all|dictsortreversed:"puntos"|slice:":3" %}
           <div class="flex items-center gap-3 bg-gradient-to-r from-pink-50 via-orange-50 to-yellow-50 p-3 rounded-xl shadow-md hover:shadow-lg transition">
             {% if miembro.usuario.profile.avatar %}
               <img src="{{ miembro.usuario.profile.avatar.url }}" alt="{{ miembro.usuario.username }}" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow">
