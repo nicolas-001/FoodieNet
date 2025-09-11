@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     "grupos",
     'notifications.apps.NotificationsConfig',
+    "crispy_forms",
     
     "allauth",
     "allauth.account",
@@ -49,6 +50,8 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.google",
     ]
 SITE_ID = 1
+
+CRISPY_TEMPLATE_PACK = "crispy_forms"
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [

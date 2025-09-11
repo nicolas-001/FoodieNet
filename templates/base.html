@@ -35,7 +35,7 @@
         {% if user.is_authenticated %}
           <a href="{% url 'feed_amigos' %}" class="hover:text-orange-400 transition duration-300">Feed Amigos</a>
           <a href="{% url 'crear_receta' %}" class="hover:text-orange-400 transition duration-300">Nueva Receta</a>
-          <a href="{% url 'users:dashboard' %}" class="hover:text-orange-400 transition duration-300">Plan Diario</a>
+          <a href="{% url 'lista_planes_semanales' %}" class="hover:text-orange-400 transition duration-300">Planes semanales</a>
           <a href="{% url 'grupos:explorar_grupos' %}" class="hover:text-orange-400 transition duration-300">Grupos</a>
         {% endif %}
       </nav>

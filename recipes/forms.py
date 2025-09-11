@@ -1,5 +1,5 @@
 from django import forms
-from .models import Receta, Comentario,PlanDiario, PlatoPersonalizado
+from .models import Receta, Comentario,PlanDiario, PlatoPersonalizado, PlanSemanal
 from django.db import models
 from django.utils.safestring import mark_safe
 from taggit.forms import TagWidget
@@ -70,3 +70,11 @@ class PlanDiarioForm(forms.ModelForm):
 
         if usuario:
             self.fields['recetas'].queryset = Receta.objects.all()
+class PlanSemanalForm(forms.ModelForm):
+    class Meta:
+        model = PlanSemanal
+        fields = ['fecha_inicio', 'fecha_fin']  # Usuario se asigna automáticamente
+        widgets = {
+            'fecha_inicio': forms.DateInput(attrs={'type': 'date', 'class': 'px-2 py-1 border rounded-md'}),
+            'fecha_fin': forms.DateInput(attrs={'type': 'date', 'class': 'px-2 py-1 border rounded-md'}),
+        }

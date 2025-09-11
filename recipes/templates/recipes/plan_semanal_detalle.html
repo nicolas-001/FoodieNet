@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="mb-10">
+    <h1 class="text-4xl font-extrabold text-gray-900 mb-4">
+        📅 {{ plan_semanal.nombre }} (Semana del {{ plan_semanal.fecha|date:"d/m/Y" }})
+    </h1>
+    <p class="text-gray-600">Incluye {{ planes.count }} planes diarios.</p>
+</div>
+
+<!-- Resumen semanal -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-10">
+    <div class="bg-gradient-to-b from-white to-orange-50 rounded-2xl p-6 shadow-md flex flex-col items-center">
+        <img src="{% static 'icons/icono_Calorias.png' %}" class="w-12 h-12 mb-2">
+        <span class="text-lg font-bold text-gray-800">{{ resumen.calorias|floatformat:0 }} kcal</span>
+        <span class="text-sm text-gray-500">Totales</span>
+    </div>
+    <div class="bg-gradient-to-b from-white to-blue-50 rounded-2xl p-6 shadow-md flex flex-col items-center">
+        <img src="{% static 'icons/icono_proteinas.png' %}" class="w-12 h-12 mb-2">
+        <span class="text-lg font-bold text-gray-800">{{ resumen.proteinas|floatformat:1 }} g</span>
+        <span class="text-sm text-gray-500">Proteínas</span>
+    </div>
+    <div class="bg-gradient-to-b from-white to-pink-50 rounded-2xl p-6 shadow-md flex flex-col items-center">
+        <img src="{% static 'icons/icono_grasas.png' %}" class="w-12 h-12 mb-2">
+        <span class="text-lg font-bold text-gray-800">{{ resumen.grasas|floatformat:1 }} g</span>
+        <span class="text-sm text-gray-500">Grasas</span>
+    </div>
+    <div class="bg-gradient-to-b from-white to-green-50 rounded-2xl p-6 shadow-md flex flex-col items-center">
+        <img src="{% static 'icons/icono_carbos.png' %}" class="w-12 h-12 mb-2">
+        <span class="text-lg font-bold text-gray-800">{{ resumen.carbohidratos|floatformat:1 }} g</span>
+        <span class="text-sm text-gray-500">Carbohidratos</span>
+    </div>
+</div>
+
+<!-- Gráfica semanal -->
+<div class="bg-white rounded-2xl shadow-lg p-6 mb-12">
+    <canvas id="chartSemana" class="w-full h-64"></canvas>
+</div>
+
+<!-- Dashboard diario dentro del plan semanal -->
+<h2 class="text-2xl font-bold mb-6">Planes diarios de esta semana</h2>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for plan in planes %}
+        {% include "users/dashboard_card.html" with plan=plan %}
+    {% empty %}
+        <p class="col-span-full text-gray-500 text-center">No hay planes diarios en esta semana.</p>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('chartSemana').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: ['Calorías', 'Proteínas', 'Grasas', 'Carbohidratos'],
+        datasets: [{
+            label: 'Totales semanales',
+            data: [{{ resumen.calorias|default:0 }}, {{ resumen.proteinas|default:0 }}, {{ resumen.grasas|default:0 }}, {{ resumen.carbohidratos|default:0 }}],
+            backgroundColor: ['#f97316', '#3b82f6', '#ec4899', '#22c55e'],
+            borderRadius: 8
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+});
+</script>
+{% endblock %}

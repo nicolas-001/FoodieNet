@@ -1,15 +1,15 @@
 # recipes/views.py
 
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import F, Count, Q, Func
+from django.db.models import F, Count, Q, Func, Sum, Avg
 from django.contrib.auth.decorators import login_required
 from django.views.generic import UpdateView
 from django.conf import settings
 from django.views.decorators.http import require_GET, require_POST
 from django.utils.dateformat import DateFormat
 from datetime import date
-from .models import Receta, Like, Favorito, Comentario, PlanDiario, PlatoPersonalizado
-from .forms import RecetaForm, ComentarioForm, PlanDiarioForm
+from .models import Receta, Like, Favorito, Comentario, PlanDiario, PlatoPersonalizado, PlanSemanal
+from .forms import RecetaForm, ComentarioForm, PlanDiarioForm, PlanSemanalForm
 from users.models import Amistad
 from django.core.paginator import Paginator
 import os, re
@@ -34,6 +34,8 @@ from rest_framework.response import Response
 from taggit.models import Tag
 from django.template.loader import render_to_string
 import random
+from datetime import timedelta
+from django.utils.timezone import now
 
 def obtener_recetas_base_para_usuario(usuario, top_n=3):
     liked_recetas = Receta.objects.filter(likes__user=usuario).order_by('-likes__creado')[:top_n]
@@ -704,12 +706,17 @@ def buscar_recetas(request):
 
 
 @login_required
-def crear_plan_diario(request):
+def crear_plan_diario_semanal(request, plan_semanal_id):
+    plan_semanal = get_object_or_404(PlanSemanal, id=plan_semanal_id, usuario=request.user)
+
     if request.method == 'POST':
         form = PlanDiarioForm(request.POST, usuario=request.user)
         if form.is_valid():
             plan = form.save(commit=False)
             plan.usuario = request.user
+            plan.plan_semanal = plan_semanal  # asociación automática
+            # Asignamos la fecha automáticamente (ej: fecha_inicio del plan semanal)
+            plan.fecha = plan_semanal.fecha_inicio
             plan.save()
             form.save_m2m()
 
@@ -723,7 +730,7 @@ def crear_plan_diario(request):
             for i in range(len(nombres)):
                 if nombres[i].strip():  # evitar vacíos
                     PlatoPersonalizado.objects.create(
-                        plan=plan,  # <--- asignar plan
+                        plan=plan,
                         nombre=nombres[i],
                         calorias=float(calorias[i]) if calorias[i] else 0,
                         proteinas=float(proteinas[i]) if proteinas[i] else 0,
@@ -731,13 +738,15 @@ def crear_plan_diario(request):
                         carbohidratos=float(carbohidratos[i]) if carbohidratos[i] else 0,
                     )
 
-            plan.calcular_totales()  # recalcular totales con recetas + platos personalizados
-            return redirect('users:dashboard')
+            plan.calcular_totales()
+            return redirect('ver_plan_diario', plan.pk)
     else:
         form = PlanDiarioForm(usuario=request.user)
 
-    return render(request, 'recipes/crear_plan_diario.html', {'form': form})
-
+    return render(request, 'recipes/crear_plan_diario.html', {
+        'form': form,
+        'plan_semanal': plan_semanal
+    })
 
 
 
@@ -914,3 +923,106 @@ def receta_info_json(request, receta_id):
     }
     return JsonResponse(data)
 
+@login_required
+def lista_planes_semanales(request):
+    planes = PlanSemanal.objects.filter(usuario=request.user).order_by("-fecha_inicio")
+    return render(request, "recipes/planes_semanales_lista.html", {"planes": planes})
+
+@login_required
+def crear_plan_semanal(request):
+    if request.method == "POST":
+        form = PlanSemanalForm(request.POST)
+        if form.is_valid():
+            plan = form.save(commit=False)
+            plan.usuario = request.user
+            plan.save()
+            return redirect("lista_planes_semanales")
+    else:
+        form = PlanSemanalForm()
+    return render(request, "recipes/plan_semanal_form.html", {"form": form})
+
+@login_required
+def ver_plan_semanal(request, pk):
+    plan = get_object_or_404(PlanSemanal, pk=pk, usuario=request.user)
+    return render(request, "recipes/plan_semanal_detalle.html", {"plan": plan})
+
+@login_required
+def eliminar_plan_semanal(request, pk):
+    plan = get_object_or_404(PlanSemanal, pk=pk, usuario=request.user)
+    if request.method == "POST":
+        plan.delete()
+        return redirect("lista_planes_semanales")
+    return render(request, "recipes/plan_semanal_confirm_delete.html", {"plan": plan})
+
+@login_required
+def ver_plan_semanal(request, pk):
+    plan_semanal = get_object_or_404(PlanSemanal, pk=pk)
+
+    # Formulario para añadir un plan diario
+    if request.method == "POST":
+        form = PlanDiarioForm(request.POST)
+        if form.is_valid():
+            nuevo_plan = form.save(commit=False)
+            nuevo_plan.usuario = request.user
+            nuevo_plan.save()
+            # Asociar al plan semanal
+            plan_semanal.planes_diarios.add(nuevo_plan)
+            return redirect("ver_plan_semanal", pk=plan_semanal.pk)
+    else:
+        form = PlanDiarioForm()
+
+    planes_diarios = plan_semanal.planes_diarios.all().order_by('fecha')
+
+    context = {
+        "plan_semanal": plan_semanal,
+        "planes_diarios": planes_diarios,
+        "form": form
+    }
+    return render(request, "recipes/plan_semanal_detalle.html", context)
+
+def dashboard_plan_semanal(request, plan_semanal_id):
+    plan_semanal = get_object_or_404(PlanSemanal, id=plan_semanal_id, usuario=request.user)
+    planes_diarios = PlanDiario.objects.filter(plan_semanal=plan_semanal, usuario=request.user).order_by('fecha')
+
+    # Crear un plan diario rápido desde el dashboard
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre')
+        fecha = request.POST.get('fecha')
+        if nombre and fecha:
+            plan = PlanDiario.objects.create(
+                nombre=nombre,
+                fecha=fecha,
+                usuario=request.user,
+                plan_semanal=plan_semanal
+            )
+            return redirect('dashboard_plan_semanal', plan_semanal_id=plan_semanal.id)
+
+    return render(request, 'recipes/dashboard_plan_semanal.html', {
+        'plan_semanal': plan_semanal,
+        'planes_diarios': planes_diarios,
+    })
+
+
+
+@login_required
+def crear_plan_diario_desde_semanal(request, plan_semanal_id):
+    plan_semanal = get_object_or_404(PlanSemanal, pk=plan_semanal_id, usuario=request.user)
+
+    if request.method == "POST":
+        form = PlanDiarioForm(request.POST)
+        if form.is_valid():
+            plan_diario = form.save(commit=False)
+            plan_diario.usuario = request.user
+            plan_diario.plan_semanal = plan_semanal  # Asociamos al plan semanal
+            plan_diario.save()
+            form.save_m2m()  # Guardar recetas seleccionadas
+            plan_diario.calcular_totales()  # Recalcular totales
+            return redirect("dashboard_plan_semanal", pk=plan_semanal.id)
+    else:
+        form = PlanDiarioForm()
+
+    context = {
+        "form": form,
+        "plan_semanal": plan_semanal,
+    }
+    return render(request, "recipes/crear_plan_diario.html", context)

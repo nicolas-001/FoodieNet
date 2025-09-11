@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Crear Plan Semanal{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto mt-10 bg-white rounded-xl shadow-md p-6">
+  <h2 class="text-2xl font-bold mb-4 text-gray-800">
+    Crear Plan Semanal ({{ lunes }} - {{ domingo }})
+  </h2>
+
+  {% if planes_diarios %}
+    <form method="post">
+      {% csrf_token %}
+      <p class="mb-4 text-gray-600">
+        Se incluirán automáticamente los planes diarios de esta semana.
+      </p>
+      <ul class="divide-y divide-gray-200 mb-4">
+        {% for pd in planes_diarios %}
+          <li class="py-2">{{ pd.fecha }}</li>
+        {% endfor %}
+      </ul>
+      <button type="submit" 
+              class="px-4 py-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-md shadow hover:from-pink-600 hover:to-orange-600 transition">
+        Crear Plan Semanal
+      </button>
+    </form>
+  {% else %}
+    <p class="text-gray-500">No tienes planes diarios esta semana.</p>
+  {% endif %}
+</div>
+{% endblock %}

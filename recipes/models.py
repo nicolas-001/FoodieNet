@@ -139,11 +139,29 @@ class PlatoPersonalizado(models.Model):
     def __str__(self):
         return f"{self.nombre} ({self.calorias} kcal)"
 
+    
+
+class PlanSemanal(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    fecha_inicio = models.DateField(help_text="Lunes de la semana")
+    fecha_fin = models.DateField(help_text="Domingo de la semana")
+
+    def __str__(self):
+        return f"Plan semanal {self.fecha_inicio} - {self.fecha_fin} ({self.usuario.username})"
+
+
 class PlanDiario(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="planes_diarios")
     nombre = models.CharField(max_length=100, help_text="Nombre del plan, por ejemplo 'Lunes', 'Martes', etc.")
-    fecha = models.DateField(auto_now_add=True)  # el día del plan
-    recetas = models.ManyToManyField(Receta, related_name="planes")  # varias recetas por día
+    fecha = models.DateField() 
+    recetas = models.ManyToManyField(Receta, related_name="planes")
+    plan_semanal = models.ForeignKey(
+        PlanSemanal,
+        on_delete=models.CASCADE,
+        related_name="planes_diarios",
+        null=True,
+        blank=True
+    )
 
     # Totales automáticos
     calorias_totales = models.FloatField(default=0)
@@ -152,13 +170,11 @@ class PlanDiario(models.Model):
     carbohidratos_totales = models.FloatField(default=0)
 
     def calcular_totales(self):
-        """Suma los valores nutricionales de todas las recetas + platos personalizados"""
         calorias = sum(r.calorias_por_persona or 0 for r in self.recetas.all())
         proteinas = sum((r.proteinas / r.porciones) if r.proteinas else 0 for r in self.recetas.all())
         grasas = sum((r.grasas / r.porciones) if r.grasas else 0 for r in self.recetas.all())
         carbohidratos = sum((r.carbohidratos / r.porciones) if r.carbohidratos else 0 for r in self.recetas.all())
 
-        # 🔹 añadimos los platos personalizados
         for plato in self.platos_personalizados.all():
             calorias += plato.calorias
             proteinas += plato.proteinas
@@ -173,5 +189,3 @@ class PlanDiario(models.Model):
 
     def __str__(self):
         return f"{self.nombre} - {self.usuario.username} ({self.fecha})"
-    
-

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Planes Semanales{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto mt-10 space-y-8">
+
+  <div class="bg-white rounded-xl shadow-md p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-gray-800">Mis Planes Semanales</h2>
+      <a href="{% url 'crear_plan_semanal' %}"
+         class="px-4 py-2 bg-green-500 text-white rounded-lg shadow hover:bg-green-600 transition">
+        ➕ Crear nuevo plan semanal
+      </a>
+    </div>
+
+    {% if planes %}
+      <ul class="divide-y divide-gray-200">
+        {% for plan in planes %}
+          <li class="py-4 flex justify-between items-center">
+            <div>
+              <p class="text-lg font-semibold text-gray-700">
+                Semana {{ plan.fecha_inicio }} - {{ plan.fecha_fin }}
+              </p>
+              <p class="text-sm text-gray-500">
+                Incluye {{ plan.planes_diarios.count }} planes diarios
+              </p>
+            </div>
+            <div class="flex gap-2">
+              <a href="{% url 'dashboard_plan_semanal' plan.pk %}"
+                 class="px-4 py-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-lg shadow hover:opacity-90 transition">
+                Ver detalles
+              </a>
+              <a href="{% url 'eliminar_plan_semanal' plan.pk %}"
+                 class="px-4 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition">
+                🗑️ Eliminar
+              </a>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-gray-500">Todavía no tienes planes semanales creados.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

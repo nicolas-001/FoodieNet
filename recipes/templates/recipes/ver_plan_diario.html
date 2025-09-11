@@ -5,6 +5,12 @@
     <!-- Título del plan -->
     <div class="text-center mb-10">
         <h2 class="text-4xl font-extrabold text-gray-800 mb-2">{{ plan.nombre }}</h2>
+        {% if plan.plan_semanal %}
+<a href="{% url 'dashboard_plan_semanal' plan.plan_semanal.id %}"
+   class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold px-4 py-2 rounded-full shadow transition-all duration-200">
+    ← Volver al plan semanal
+</a>
+{% endif %}
         <p class="text-gray-500 text-lg">Calorías totales: <span class="font-semibold">{{ total_calorias }} kcal</span></p>
     </div>
 

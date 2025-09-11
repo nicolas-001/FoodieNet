@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row justify-between items-center mb-8">
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4 sm:mb-0">
+        Plan semanal: {{ plan_semanal.fecha_inicio|date:"d/m/Y" }} - {{ plan_semanal.fecha_fin|date:"d/m/Y" }}
+    </h1>
+</div>
+
+<a href="{% url 'crear_plan_diario_semanal' plan_semanal.id %}" 
+   class="bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700
+          text-white font-semibold px-6 py-3 rounded-full shadow-xl transition-all duration-300">
+    + Crear plan diario
+</a>
+
+<!-- Lista de planes diarios dentro de la semana -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+    {% for plan in planes_diarios %}
+    <div class="bg-gradient-to-b from-white to-green-50 rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden
+                border border-gray-200 hover:border-green-300 transform hover:-translate-y-1 hover:scale-105">
+        <div class="p-6">
+            <a href="{% url 'ver_plan_diario' plan.pk %}" 
+               class="block text-2xl font-extrabold text-gray-900 hover:text-green-600 transition-colors mb-4 truncate">
+                {{ plan.nombre }}
+            </a>
+           
+
+            <!-- Totales diarios -->
+            <div class="grid grid-cols-2 gap-6 mb-4">
+                <div class="flex flex-col items-center bg-white rounded-2xl p-4 shadow-inner hover:shadow-lg hover:scale-105 transition-transform duration-300">
+                    <img src="{% static 'icons/icono_Calorias.png' %}" alt="Calorías" class="w-12 h-12 mb-2 animate-pulse-slow">
+                    <span class="text-gray-700 font-semibold">{{ plan.calorias_totales|floatformat:1 }} kcal</span>
+                </div>
+                <div class="flex flex-col items-center bg-white rounded-2xl p-4 shadow-inner hover:shadow-lg hover:scale-105 transition-transform duration-300">
+                    <img src="{% static 'icons/icono_proteinas.png' %}" alt="Proteínas" class="w-12 h-12 mb-2 animate-pulse-slow">
+                    <span class="text-gray-700 font-semibold">{{ plan.proteinas_totales|floatformat:1 }} g</span>
+                </div>
+                <div class="flex flex-col items-center bg-white rounded-2xl p-4 shadow-inner hover:shadow-lg hover:scale-105 transition-transform duration-300">
+                    <img src="{% static 'icons/icono_grasas.png' %}" alt="Grasas" class="w-12 h-12 mb-2 animate-pulse-slow">
+                    <span class="text-gray-700 font-semibold">{{ plan.grasas_totales|floatformat:1 }} g</span>
+                </div>
+                <div class="flex flex-col items-center bg-white rounded-2xl p-4 shadow-inner hover:shadow-lg hover:scale-105 transition-transform duration-300">
+                    <img src="{% static 'icons/icono_carbos.png' %}" alt="Carbohidratos" class="w-12 h-12 mb-2 animate-pulse-slow">
+                    <span class="text-gray-700 font-semibold">{{ plan.carbohidratos_totales|floatformat:1 }} g</span>
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="flex justify-between mt-4">
+                <a href="{% url 'editar_plan_diario' plan.pk %}" 
+                   class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">Editar</a>
+                <button class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded eliminar-plan" data-id="{{ plan.pk }}">
+                    Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <p class="col-span-full text-gray-500 text-center mt-10">No hay planes diarios en esta semana.</p>
+    {% endfor %}
+</div>
+
+<!-- Gráfica semanal -->
+<div class="mt-8 bg-white p-6 rounded-3xl shadow-lg">
+    <h2 class="text-2xl font-bold mb-4">Totales de la semana</h2>
+    <canvas id="grafica-semana"></canvas>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('grafica-semana').getContext('2d');
+const data = {
+    labels: [{% for plan in planes_diarios %}'{{ plan.nombre }}',{% endfor %}],
+    datasets: [
+        { label: 'Calorías', data: [{% for plan in planes_diarios %}{{ plan.calorias_totales }},{% endfor %}], backgroundColor: 'rgba(255, 99, 132, 0.5)' },
+        { label: 'Proteínas', data: [{% for plan in planes_diarios %}{{ plan.proteinas_totales }},{% endfor %}], backgroundColor: 'rgba(54, 162, 235, 0.5)' },
+        { label: 'Grasas', data: [{% for plan in planes_diarios %}{{ plan.grasas_totales }},{% endfor %}], backgroundColor: 'rgba(255, 206, 86, 0.5)' },
+        { label: 'Carbohidratos', data: [{% for plan in planes_diarios %}{{ plan.carbohidratos_totales }},{% endfor %}], backgroundColor: 'rgba(75, 192, 192, 0.5)' }
+    ]
+};
+
+new Chart(ctx, {
+    type: 'bar',
+    data: data,
+    options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+});
+
+// Borrado dinámico
+document.querySelectorAll('.eliminar-plan').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const planId = btn.dataset.id;
+        if (confirm('¿Seguro que quieres eliminar este plan diario?')) {
+            fetch(`/planes/${planId}/eliminar/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            })
+            .then(response => {
+                if (response.ok) {
+                    btn.closest('.bg-gradient-to-b').remove();
+                } else {
+                    alert('Error al eliminar el plan');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Error de conexión');
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

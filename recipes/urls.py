@@ -20,10 +20,17 @@ urlpatterns = [
     path('recomendar/<int:receta_id>/', vista_recomendar_recetas, name='recomendar_recetas'),
     path('recomendaciones-dinamicas/<int:receta_id>/', views.recomendaciones_dinamicas, name='recomendaciones_dinamicas'),
     path("planes/", views.listar_planes_diarios, name="listar_planes_diarios"),
-    path("planes/crear/", views.crear_plan_diario, name="crear_plan_diario"),
+    
     path("planes/<int:pk>/", views.ver_plan_diario, name="ver_plan_diario"),
     path("planes/<int:pk>/editar/", views.editar_plan_diario, name="editar_plan_diario"),
     path("planes/<int:pk>/eliminar/", views.eliminar_plan_diario, name="eliminar_plan_diario"),
-     path('api/recetas/', views.buscar_recetas, name='api_recetas'),
-    
+    path('api/recetas/', views.buscar_recetas, name='api_recetas'),
+    path("semanales/", views.lista_planes_semanales, name="lista_planes_semanales"),
+    path("semanales/<int:pk>/", views.ver_plan_semanal, name="ver_plan_semanal"),
+    path("semanales/crear/", views.crear_plan_semanal, name="crear_plan_semanal"),
+    path("semanales/<int:pk>/eliminar/", views.eliminar_plan_semanal, name="eliminar_plan_semanal"),
+    path('semanales/<int:plan_semanal_id>/dashboard/', views.dashboard_plan_semanal, name='dashboard_plan_semanal'),
+    path('semanales/<int:plan_semanal_id>/crear_plan_diario/', 
+     views.crear_plan_diario_semanal, name='crear_plan_diario_semanal'),
+
 ]
