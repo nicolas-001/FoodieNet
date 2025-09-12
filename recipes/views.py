@@ -69,6 +69,21 @@ def lista_recetas(request):
         if Like.objects.filter(user=usuario).exists() or Favorito.objects.filter(user=usuario).exists():
             tipo_recomendacion = "likes"
 
+        # --- FILTRAR SEGÚN PREFERENCIAS Y ALERGIAS ---
+        perfil = usuario.perfil
+
+        # Combinar ingredientes a evitar y alergias
+        ingredientes_no_deseados = [i.strip() for i in (perfil.ingredientes_a_evitar + ',' + perfil.alergias).split(',') if i.strip()]
+        tags_evitar = [t.strip() for t in perfil.tags_a_evitar.split(',') if t.strip()]
+
+        # Excluir recetas que contengan ingredientes no deseados
+        for ing in ingredientes_no_deseados:
+            recetas_qs = recetas_qs.exclude(ingredientes__icontains=ing)
+
+        # Excluir recetas que contengan tags no deseados
+        for tag in tags_evitar:
+            recetas_qs = recetas_qs.exclude(tags__name__icontains=tag)
+
     else:
         recetas_qs = Receta.objects.filter(es_publica=True).select_related('autor__perfil').order_by('-fecha_creacion')
 
@@ -102,6 +117,8 @@ def lista_recetas(request):
         'dificultad_seleccionada': dificultad_seleccionada,
         'query_params': query_params
     })
+
+
 
 def lista_recetas_ajax(request):
     usuario = request.user
@@ -712,15 +729,15 @@ def crear_plan_diario_semanal(request, plan_semanal_id):
     if request.method == 'POST':
         form = PlanDiarioForm(request.POST, usuario=request.user)
         if form.is_valid():
+            # Guardamos el plan primero
             plan = form.save(commit=False)
             plan.usuario = request.user
-            plan.plan_semanal = plan_semanal  # asociación automática
-            # Asignamos la fecha automáticamente (ej: fecha_inicio del plan semanal)
+            plan.plan_semanal = plan_semanal
             plan.fecha = plan_semanal.fecha_inicio
             plan.save()
             form.save_m2m()
 
-            # Guardar platos personalizados
+            # === Crear platos personalizados nuevos ===
             nombres = request.POST.getlist("plato_nombre[]")
             calorias = request.POST.getlist("plato_calorias[]")
             proteinas = request.POST.getlist("plato_proteinas[]")
@@ -728,25 +745,37 @@ def crear_plan_diario_semanal(request, plan_semanal_id):
             carbohidratos = request.POST.getlist("plato_carbohidratos[]")
 
             for i in range(len(nombres)):
-                if nombres[i].strip():  # evitar vacíos
-                    PlatoPersonalizado.objects.create(
-                        plan=plan,
+                if nombres[i].strip():  # ignorar campos vacíos
+                    plato = PlatoPersonalizado.objects.create(
+                        usuario=request.user,
                         nombre=nombres[i],
                         calorias=float(calorias[i]) if calorias[i] else 0,
                         proteinas=float(proteinas[i]) if proteinas[i] else 0,
                         grasas=float(grasas[i]) if grasas[i] else 0,
                         carbohidratos=float(carbohidratos[i]) if carbohidratos[i] else 0,
                     )
+                    plan.platos_personalizados.add(plato)
 
+            # === Añadir platos guardados seleccionados ===
+            platos_guardados_ids = request.POST.getlist("platos_guardados[]")
+            if platos_guardados_ids:
+                platos_guardados = PlatoPersonalizado.objects.filter(id__in=platos_guardados_ids, usuario=request.user)
+                for plato in platos_guardados:
+                    plan.platos_personalizados.add(plato)
+
+            # Calculamos totales del plan
             plan.calcular_totales()
+
             return redirect('ver_plan_diario', plan.pk)
     else:
         form = PlanDiarioForm(usuario=request.user)
 
     return render(request, 'recipes/crear_plan_diario.html', {
         'form': form,
-        'plan_semanal': plan_semanal
+        'plan_semanal': plan_semanal,
+        'platos_usuario': request.user.platos_personalizados.all()  # lista de platos guardados
     })
+
 
 
 

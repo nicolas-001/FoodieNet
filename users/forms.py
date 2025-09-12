@@ -38,3 +38,23 @@ class UserSearchForm(forms.Form):
         max_length=150,
         widget=forms.TextInput(attrs={'placeholder': 'Introduce nombre de usuario…'})
     )
+class PerfilPreferenciasForm(forms.ModelForm):
+    ingredientes_a_evitar = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 2, 'placeholder': 'Ej: cebolla, ajo, pimiento'}),
+        required=False,
+        label="Ingredientes a evitar"
+    )
+    tags_a_evitar = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 2, 'placeholder': 'Ej: vegano, sin gluten'}),
+        required=False,
+        label="Tags a evitar"
+    )
+    alergias = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 2, 'placeholder': 'Ej: frutos secos, mariscos'}),
+        required=False,
+        label="Alergias"
+    )
+
+    class Meta:
+        model = Perfil
+        fields = ['ingredientes_a_evitar', 'tags_a_evitar', 'alergias']

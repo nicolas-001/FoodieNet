@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% load static %}
+
 {% load filtros_amigos %}
 {% load recetas_extras %}
+
 
 {% block title %}Mi perfil – FoodieNet{% endblock %}
 
@@ -32,6 +34,24 @@
            class="mt-2 inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
           Editar mi perfil
         </a>
+          <!-- Botón para editar preferencias y alergias -->
+  <a href="{% url 'users:editar_preferencias' %}" 
+     class="mt-2 inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
+    Editar preferencias y alergias
+  </a>
+
+<p class="mt-2 text-gray-700 text-sm">
+  {% with request.user.perfil.preferencias.all as prefs %}
+    {% if prefs %}
+      Has marcado {{ prefs|length }} preferencia{% if prefs|length > 1 %}s{% endif %}
+    {% else %}
+      No has marcado preferencias ni alergias
+    {% endif %}
+  {% endwith %}
+</p>
+
+</div>
+</div>
       </div>
     </div>
 

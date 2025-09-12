@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from recipes.models import Receta, Favorito  # Ajusta si tu modelo se llama distinto
-from .forms import UserEditForm,PerfilForm  # Formulario para editar usuario
+from .forms import UserEditForm,PerfilForm, PerfilPreferenciasForm  # Formulario para editar usuario
 from .models import Amistad, Perfil
 from datetime import date
 from recipes.models import PlanDiario
@@ -488,3 +488,15 @@ def dashboard(request):
         "planes": planes,
     }
     return render(request, "users/dashboard.html", context)
+
+def editar_preferencias(request):
+    perfil = request.user.perfil
+    if request.method == 'POST':
+        form = PerfilPreferenciasForm(request.POST, instance=perfil)
+        if form.is_valid():
+            form.save()
+            return redirect('users:perfil')  # URL de tu perfil
+    else:
+        form = PerfilPreferenciasForm(instance=perfil)
+
+    return render(request, 'users/editar_preferencias.html', {'form': form})

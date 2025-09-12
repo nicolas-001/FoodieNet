@@ -7,9 +7,10 @@ from django.dispatch import receiver
 def ruta_foto_perfil(instance, filename):
     return f'perfiles/{instance.user.username}/{filename}'
 
+
 class Perfil(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    foto = models.ImageField(upload_to="perfiles", blank=True, null=True, default="perfiles/default.jpeg")
+    foto = models.ImageField(upload_to=ruta_foto_perfil, blank=True, null=True, default="perfiles/default.jpeg")
     biografia = models.TextField(blank=True)
     edad = models.PositiveIntegerField(blank=True, null=True)
     peso = models.FloatField(blank=True, null=True)  # kg
@@ -19,6 +20,12 @@ class Perfil(models.Model):
         choices=[("M", "Masculino"), ("F", "Femenino")],
         blank=True, null=True
     )
+
+    # --- NUEVOS CAMPOS PARA PREFERENCIAS ---
+    ingredientes_a_evitar = models.TextField(blank=True, default="", help_text="Separados por comas")
+    tags_a_evitar = models.TextField(blank=True, default="", help_text="Separados por comas")
+    alergias = models.TextField(blank=True, default="", help_text="Separadas por comas")
+
     objetivo = models.CharField(
         max_length=20,
         choices=[("deficit", "Déficit calórico"), ("mantenimiento", "Mantenimiento"), ("superavit", "Superávit calórico")],
@@ -105,3 +112,4 @@ class Amistad(models.Model):
 
     def __str__(self):
         return f"{self.de_usuario} → {self.para_usuario} ({'Aceptada' if self.aceptada else 'Pendiente'})"
+

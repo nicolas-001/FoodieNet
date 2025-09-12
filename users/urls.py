@@ -6,6 +6,7 @@ app_name = 'users'
 
 urlpatterns = [
     path('perfil/', views.perfil, name='perfil'),
+    path('editar-preferencias/', views.editar_preferencias, name='editar_preferencias'),
     path('editar_perfil/', editar_perfil, name='editar_perfil'),
     path('perfil/favoritos/', views.favoritos, name='favoritos'),
     path('buscar/', views.buscar_usuarios_y_recetas, name='buscar_usuarios_y_recetas'),
@@ -17,6 +18,7 @@ urlpatterns = [
     path('<str:username>/', views.perfil_usuario, name='perfil_usuario'),
     path('cancelar-solicitud/<str:username>/', views.cancelar_solicitud, name='cancelar_solicitud'),
     path('borrar-amigo/<str:username>/', views.borrar_amigo, name='borrar_amigo'),
+    
     
 
 ]

@@ -129,7 +129,7 @@ class Comentario(models.Model):
     def __str__(self):
         return f"{self.autor.username} en {self.receta.titulo}"
 class PlatoPersonalizado(models.Model):
-    plan = models.ForeignKey("PlanDiario", on_delete=models.CASCADE, related_name="platos_personalizados")
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="platos_personalizados")
     nombre = models.CharField(max_length=255)
     calorias = models.FloatField()
     proteinas = models.FloatField()
@@ -139,7 +139,6 @@ class PlatoPersonalizado(models.Model):
     def __str__(self):
         return f"{self.nombre} ({self.calorias} kcal)"
 
-    
 
 class PlanSemanal(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -153,13 +152,18 @@ class PlanSemanal(models.Model):
 class PlanDiario(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="planes_diarios")
     nombre = models.CharField(max_length=100, help_text="Nombre del plan, por ejemplo 'Lunes', 'Martes', etc.")
-    fecha = models.DateField() 
+    fecha = models.DateField()
     recetas = models.ManyToManyField(Receta, related_name="planes")
     plan_semanal = models.ForeignKey(
         PlanSemanal,
         on_delete=models.CASCADE,
         related_name="planes_diarios",
         null=True,
+        blank=True
+    )
+    platos_personalizados = models.ManyToManyField(
+        PlatoPersonalizado,
+        related_name="planes_diarios",
         blank=True
     )
 

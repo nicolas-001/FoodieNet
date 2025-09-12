@@ -21,7 +21,7 @@
       {{ form.nombre|add_class:"w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" }}
     </div>
 
-    <!-- Buscador premium -->
+    <!-- Buscador recetas -->
     <div>
       <label class="block text-gray-700 font-medium mb-2">🔍 Buscar receta</label>
       <input type="text" id="buscador-recetas"
@@ -39,9 +39,29 @@
     <!-- Platos personalizados -->
     <div>
       <h3 class="text-lg font-semibold text-gray-800 mb-3">Añadir platos personalizados</h3>
+
+      {% if platos_usuario %}
+      <div class="mb-4">
+        <label class="block text-gray-700 font-medium mb-2">📂 Mis platos personalizados</label>
+        <select id="select-plato-guardado" class="w-full border border-gray-300 rounded-lg p-2">
+          <option value="">-- Selecciona un plato guardado --</option>
+          {% for plato in platos_usuario %}
+          <option value="{{ plato.id }}"
+                  data-nombre="{{ plato.nombre }}"
+                  data-calorias="{{ plato.calorias }}"
+                  data-proteinas="{{ plato.proteinas }}"
+                  data-grasas="{{ plato.grasas }}"
+                  data-carbohidratos="{{ plato.carbohidratos }}">
+            {{ plato.nombre }} ({{ plato.calorias }} kcal, P:{{ plato.proteinas }}g, G:{{ plato.grasas }}g, C:{{ plato.carbohidratos }}g)
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
       <div id="platos-personalizados" class="space-y-4"></div>
       <button type="button" id="add-plato" class="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 transition">
-        ➕ Añadir plato
+        ➕ Añadir plato manual
       </button>
     </div>
 
@@ -77,7 +97,86 @@
 </div>
 
 <script>
-// Autocomplete con fetch
+// === Actualizar totales ===
+function actualizarTotales() {
+    let calorias = 0, proteinas = 0, grasas = 0, carbohidratos = 0;
+
+    // Recetas
+    document.querySelectorAll('#recetas-seleccionadas input[name="recetas"]').forEach(input => {
+        calorias += parseFloat(input.dataset.calorias || 0);
+        proteinas += parseFloat(input.dataset.proteinas || 0);
+        grasas += parseFloat(input.dataset.grasas || 0);
+        carbohidratos += parseFloat(input.dataset.carbohidratos || 0);
+    });
+
+    // Platos personalizados
+    document.querySelectorAll('.plato-input').forEach(plato => {
+        const cantidad = parseFloat(plato.querySelector('.cantidad')?.value || 1);
+        calorias += parseFloat(plato.querySelector('.calorias')?.value || 0) * cantidad;
+        proteinas += parseFloat(plato.querySelector('.proteinas')?.value || 0) * cantidad;
+        grasas += parseFloat(plato.querySelector('.grasas')?.value || 0) * cantidad;
+        carbohidratos += parseFloat(plato.querySelector('.carbohidratos')?.value || 0) * cantidad;
+    });
+
+    document.getElementById('total-calorias').textContent = calorias.toFixed(1);
+    document.getElementById('total-proteinas').textContent = proteinas.toFixed(1);
+    document.getElementById('total-grasas').textContent = grasas.toFixed(1);
+    document.getElementById('total-carbohidratos').textContent = carbohidratos.toFixed(1);
+}
+
+// === Crear input de plato ===
+function crearPlatoInput(data={}) {
+    const div = document.createElement("div");
+    div.classList.add("grid", "grid-cols-6", "gap-2", "plato-input", "items-center");
+
+    div.innerHTML = `
+        <input type="text" name="plato_nombre[]" value="${data.nombre || ''}" placeholder="Nombre" class="col-span-2 border border-gray-300 rounded-lg p-2">
+        <input type="number" name="plato_calorias[]" value="${data.calorias || ''}" placeholder="kcal" step="0.1" class="calorias border border-gray-300 rounded-lg p-2">
+        <input type="number" name="plato_proteinas[]" value="${data.proteinas || ''}" placeholder="P (g)" step="0.1" class="proteinas border border-gray-300 rounded-lg p-2">
+        <input type="number" name="plato_grasas[]" value="${data.grasas || ''}" placeholder="G (g)" step="0.1" class="grasas border border-gray-300 rounded-lg p-2">
+        <input type="number" name="plato_carbohidratos[]" value="${data.carbohidratos || ''}" placeholder="C (g)" step="0.1" class="carbohidratos border border-gray-300 rounded-lg p-2">
+        <input type="number" name="plato_cantidad[]" value="1" step="0.1" class="cantidad border border-gray-300 rounded-lg p-2 w-20">
+        <button type="button" class="eliminar bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">×</button>
+    `;
+
+    div.querySelectorAll("input").forEach(input => input.addEventListener("input", actualizarTotales));
+    div.querySelector(".eliminar").addEventListener("click", () => {
+        div.remove();
+        actualizarTotales();
+    });
+
+    return div;
+}
+
+// === Añadir plato manual ===
+document.getElementById("add-plato").addEventListener("click", () => {
+    const container = document.getElementById("platos-personalizados");
+    container.appendChild(crearPlatoInput());
+    actualizarTotales();
+});
+
+// === Reutilizar platos guardados ===
+const selectPlato = document.getElementById("select-plato-guardado");
+if (selectPlato) {
+    selectPlato.addEventListener("change", () => {
+        const option = selectPlato.options[selectPlato.selectedIndex];
+        if (option.value) {
+            const data = {
+                nombre: option.dataset.nombre,
+                calorias: option.dataset.calorias,
+                proteinas: option.dataset.proteinas,
+                grasas: option.dataset.grasas,
+                carbohidratos: option.dataset.carbohidratos
+            };
+            const container = document.getElementById("platos-personalizados");
+            container.appendChild(crearPlatoInput(data));
+            selectPlato.selectedIndex = 0;
+            actualizarTotales();
+        }
+    });
+}
+
+// === Buscador dinámico de recetas ===
 const buscador = document.getElementById("buscador-recetas");
 const resultados = document.getElementById("resultados-recetas");
 const seleccionadas = document.getElementById("recetas-seleccionadas");
@@ -130,55 +229,7 @@ buscador.addEventListener("input", async () => {
     resultados.classList.remove("hidden");
 });
 
-// Totales dinámicos
-function actualizarTotales() {
-    let calorias = 0, proteinas = 0, grasas = 0, carbohidratos = 0;
-
-    document.querySelectorAll('#recetas-seleccionadas input[name="recetas"]').forEach(input => {
-        calorias += parseFloat(input.dataset.calorias || 0);
-        proteinas += parseFloat(input.dataset.proteinas || 0);
-        grasas += parseFloat(input.dataset.grasas || 0);
-        carbohidratos += parseFloat(input.dataset.carbohidratos || 0);
-    });
-
-    document.querySelectorAll('.plato-input').forEach(plato => {
-        const cantidad = parseFloat(plato.querySelector('.cantidad')?.value || 1);
-        calorias += parseFloat(plato.querySelector('.calorias')?.value || 0) * cantidad;
-        proteinas += parseFloat(plato.querySelector('.proteinas')?.value || 0) * cantidad;
-        grasas += parseFloat(plato.querySelector('.grasas')?.value || 0) * cantidad;
-        carbohidratos += parseFloat(plato.querySelector('.carbohidratos')?.value || 0) * cantidad;
-    });
-
-    document.getElementById('total-calorias').textContent = calorias.toFixed(1);
-    document.getElementById('total-proteinas').textContent = proteinas.toFixed(1);
-    document.getElementById('total-grasas').textContent = grasas.toFixed(1);
-    document.getElementById('total-carbohidratos').textContent = carbohidratos.toFixed(1);
-}
-
-// Platos personalizados
-document.getElementById("add-plato").addEventListener("click", function() {
-    const container = document.getElementById("platos-personalizados");
-    const div = document.createElement("div");
-    div.classList.add("grid", "grid-cols-6", "gap-2", "plato-input", "items-center");
-
-    div.innerHTML = `
-        <input type="text" name="plato_nombre[]" placeholder="Nombre" class="col-span-2 border border-gray-300 rounded-lg p-2">
-        <input type="number" name="plato_calorias[]" placeholder="kcal" step="0.1" class="calorias border border-gray-300 rounded-lg p-2">
-        <input type="number" name="plato_proteinas[]" placeholder="P (g)" step="0.1" class="proteinas border border-gray-300 rounded-lg p-2">
-        <input type="number" name="plato_grasas[]" placeholder="G (g)" step="0.1" class="grasas border border-gray-300 rounded-lg p-2">
-        <input type="number" name="plato_carbohidratos[]" placeholder="C (g)" step="0.1" class="carbohidratos border border-gray-300 rounded-lg p-2">
-        <input type="number" name="plato_cantidad[]" value="1" step="0.1" class="cantidad border border-gray-300 rounded-lg p-2 w-20">
-        <button type="button" class="eliminar bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">×</button>
-    `;
-    container.appendChild(div);
-
-    div.querySelectorAll("input").forEach(input => input.addEventListener("input", actualizarTotales));
-    div.querySelector(".eliminar").addEventListener("click", () => {
-        div.remove();
-        actualizarTotales();
-    });
-});
-
+// === Inicializar totales al cargar ===
 actualizarTotales();
 </script>
 {% endblock %}

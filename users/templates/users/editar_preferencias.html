@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100 flex items-center justify-center py-10">
+    <!-- Contenedor principal -->
+    <div class="w-full max-w-3xl bg-white rounded-2xl shadow-xl p-10">
+        <h2 class="text-3xl font-bold text-gray-900 mb-8 text-center">Editar preferencias y alergias</h2>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Alergias -->
+            <div>
+                <label class="block text-lg font-semibold text-gray-700 mb-2">{{ form.alergias.label }}</label>
+                {{ form.alergias }}
+                <p class="text-gray-400 text-sm mt-1">Separadas por comas. Ej: gluten, frutos secos</p>
+            </div>
+
+            <!-- Ingredientes a evitar -->
+            <div>
+                <label class="block text-lg font-semibold text-gray-700 mb-2">{{ form.ingredientes_a_evitar.label }}</label>
+                {{ form.ingredientes_a_evitar }}
+                <p class="text-gray-400 text-sm mt-1">Separados por comas. Ej: tomate, cebolla, ajo</p>
+            </div>
+
+            <!-- Tags a evitar -->
+            <div>
+                <label class="block text-lg font-semibold text-gray-700 mb-2">{{ form.tags_a_evitar.label }}</label>
+                {{ form.tags_a_evitar }}
+                <p class="text-gray-400 text-sm mt-1">Separados por comas. Ej: vegano, picante</p>
+            </div>
+
+            <!-- Botón Guardar -->
+            <div class="text-center">
+                <button type="submit" class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 transition duration-300">
+                    Guardar preferencias
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Aplica Tailwind a los campos del formulario para que se vean premium */
+input[type="text"], textarea {
+    @apply w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+}
+</style>
+{% endblock %}
