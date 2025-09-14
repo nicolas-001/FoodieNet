@@ -3,6 +3,7 @@
 
 {% load filtros_amigos %}
 {% load recetas_extras %}
+{% load custom_filters %}
 
 
 {% block title %}Mi perfil – FoodieNet{% endblock %}
@@ -41,14 +42,14 @@
   </a>
 
 <p class="mt-2 text-gray-700 text-sm">
-  {% with request.user.perfil.preferencias.all as prefs %}
-    {% if prefs %}
-      Has marcado {{ prefs|length }} preferencia{% if prefs|length > 1 %}s{% endif %}
-    {% else %}
-      No has marcado preferencias ni alergias
-    {% endif %}
-  {% endwith %}
+  {% if total_prefs > 0 %}
+    Has marcado {{ total_prefs }} preferencia{% if total_prefs > 1 %}s{% endif %}
+  {% else %}
+    No has marcado preferencias ni alergias
+  {% endif %}
 </p>
+
+
 
 </div>
 </div>

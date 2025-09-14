@@ -5,34 +5,36 @@
 {% block content %}
 <div class="max-w-7xl mx-auto mt-10 space-y-8">
 
-  <div class="bg-white rounded-xl shadow-md p-6">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-gray-800">Mis Planes Semanales</h2>
-      <a href="{% url 'crear_plan_semanal' %}"
-         class="px-4 py-2 bg-green-500 text-white rounded-lg shadow hover:bg-green-600 transition">
-        ➕ Crear nuevo plan semanal
-      </a>
+  <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl shadow-2xl p-6">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-3xl font-extrabold text-gray-800">Mis Planes Semanales</h2>
+<a href="{% url 'crear_plan_semanal' %}"
+   class="px-5 py-3 bg-orange-500 text-white rounded-2xl shadow-lg hover:bg-orange-600 transition duration-300 font-semibold">
+  ➕ Crear nuevo plan semanal
+</a>
+
+
     </div>
 
     {% if planes %}
-      <ul class="divide-y divide-gray-200">
+      <ul class="space-y-4">
         {% for plan in planes %}
-          <li class="py-4 flex justify-between items-center">
-            <div>
-              <p class="text-lg font-semibold text-gray-700">
-                Semana {{ plan.fecha_inicio }} - {{ plan.fecha_fin }}
-              </p>
-              <p class="text-sm text-gray-500">
-                Incluye {{ plan.planes_diarios.count }} planes diarios
-              </p>
-            </div>
-            <div class="flex gap-2">
-              <a href="{% url 'dashboard_plan_semanal' plan.pk %}"
-                 class="px-4 py-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-lg shadow hover:opacity-90 transition">
-                Ver detalles
+          <li>
+            <div class="flex justify-between items-center bg-white rounded-2xl shadow-xl p-5 hover:shadow-2xl transition duration-300">
+              <!-- Enlace al plan -->
+              <a href="{% url 'dashboard_plan_semanal' plan.pk %}" class="flex-1">
+                <p class="text-xl font-bold text-gray-800">
+                  Semana {{ plan.fecha_inicio }} - {{ plan.fecha_fin }}
+                </p>
+                <p class="text-sm text-gray-500 mt-1">
+                  Incluye {{ plan.planes_diarios.count }} planes diarios
+                </p>
               </a>
+
+              <!-- Botón eliminar -->
               <a href="{% url 'eliminar_plan_semanal' plan.pk %}"
-                 class="px-4 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition">
+                 class="ml-4 px-5 py-2 bg-red-500 text-white rounded-xl shadow-md hover:bg-red-600 transition font-semibold"
+                 onclick="event.stopPropagation();">
                 🗑️ Eliminar
               </a>
             </div>
@@ -40,7 +42,7 @@
         {% endfor %}
       </ul>
     {% else %}
-      <p class="text-gray-500">Todavía no tienes planes semanales creados.</p>
+      <p class="text-gray-500 text-lg mt-4">Todavía no tienes planes semanales creados.</p>
     {% endif %}
   </div>
 

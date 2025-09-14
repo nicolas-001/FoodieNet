@@ -42,6 +42,12 @@ def perfil(request):
     
     # 👉 Aquí añadimos las recetas subidas por el usuario
     recetas = usuario.receta_set.all()
+    perfil = request.user.perfil
+    alergias_list = [a.strip() for a in perfil.alergias.split(",") if a.strip()]
+    ingredientes_list = [i.strip() for i in perfil.ingredientes_a_evitar.split(",") if i.strip()]
+    tags_list = [t.strip() for t in perfil.tags_a_evitar.split(",") if t.strip()]
+
+    total_prefs = len(alergias_list) + len(ingredientes_list) + len(tags_list)
 
     return render(
         request,
@@ -49,6 +55,7 @@ def perfil(request):
         {
             'form_user': form_user,
             'form_perfil': form_perfil,
+            "total_prefs": total_prefs,
             'favoritos': favoritos,
             'amigos': amigos,
             'solicitudes_pendientes': solicitudes_pendientes,

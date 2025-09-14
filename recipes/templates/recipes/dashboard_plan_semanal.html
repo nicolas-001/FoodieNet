@@ -6,15 +6,14 @@
     <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4 sm:mb-0">
         Plan semanal: {{ plan_semanal.fecha_inicio|date:"d/m/Y" }} - {{ plan_semanal.fecha_fin|date:"d/m/Y" }}
     </h1>
+    <a href="{% url 'crear_plan_diario_semanal' plan_semanal.id %}" 
+       class="bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700
+              text-white font-semibold px-6 py-3 rounded-full shadow-xl transition-all duration-300">
+        + Crear plan diario
+    </a>
 </div>
 
-<a href="{% url 'crear_plan_diario_semanal' plan_semanal.id %}" 
-   class="bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700
-          text-white font-semibold px-6 py-3 rounded-full shadow-xl transition-all duration-300">
-    + Crear plan diario
-</a>
-
-<!-- Lista de planes diarios dentro de la semana -->
+<!-- Lista de planes diarios -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
     {% for plan in planes_diarios %}
     <div class="bg-gradient-to-b from-white to-green-50 rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden
@@ -24,10 +23,9 @@
                class="block text-2xl font-extrabold text-gray-900 hover:text-green-600 transition-colors mb-4 truncate">
                 {{ plan.nombre }}
             </a>
-           
 
             <!-- Totales diarios -->
-            <div class="grid grid-cols-2 gap-6 mb-4">
+            <div class="grid grid-cols-2 gap-4 mb-4">
                 <div class="flex flex-col items-center bg-white rounded-2xl p-4 shadow-inner hover:shadow-lg hover:scale-105 transition-transform duration-300">
                     <img src="{% static 'icons/icono_Calorias.png' %}" alt="Calorías" class="w-12 h-12 mb-2 animate-pulse-slow">
                     <span class="text-gray-700 font-semibold">{{ plan.calorias_totales|floatformat:1 }} kcal</span>
@@ -46,12 +44,10 @@
                 </div>
             </div>
 
-            <!-- Botones de acción -->
-            <div class="flex justify-between mt-4">
-                <a href="{% url 'editar_plan_diario' plan.pk %}" 
-                   class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">Editar</a>
+            <!-- Botón eliminar -->
+            <div class="flex justify-end mt-4">
                 <button class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded eliminar-plan" data-id="{{ plan.pk }}">
-                    Eliminar
+                    🗑️ Eliminar
                 </button>
             </div>
         </div>
@@ -61,31 +57,103 @@
     {% endfor %}
 </div>
 
-<!-- Gráfica semanal -->
+<!-- Resumen de la semana -->
 <div class="mt-8 bg-white p-6 rounded-3xl shadow-lg">
-    <h2 class="text-2xl font-bold mb-4">Totales de la semana</h2>
-    <canvas id="grafica-semana"></canvas>
+    <h2 class="text-2xl font-bold mb-4">Resumen de la semana</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-orange-50 p-4 rounded-xl shadow-inner flex flex-col items-center">
+            <span class="font-semibold text-gray-700">Total Calorías</span>
+            <span class="text-xl font-bold">{{ total_calorias|floatformat:1 }} kcal</span>
+        </div>
+        <div class="bg-blue-50 p-4 rounded-xl shadow-inner flex flex-col items-center">
+            <span class="font-semibold text-gray-700">Proteínas</span>
+            <span class="text-xl font-bold">{{ total_proteinas|floatformat:1 }} g</span>
+        </div>
+        <div class="bg-pink-50 p-4 rounded-xl shadow-inner flex flex-col items-center">
+            <span class="font-semibold text-gray-700">Grasas</span>
+            <span class="text-xl font-bold">{{ total_grasas|floatformat:1 }} g</span>
+        </div>
+        <div class="bg-green-50 p-4 rounded-xl shadow-inner flex flex-col items-center">
+            <span class="font-semibold text-gray-700">Carbohidratos</span>
+            <span class="text-xl font-bold">{{ total_carbohidratos|floatformat:1 }} g</span>
+        </div>
+    </div>
+
+    <!-- Comparativa TDEE -->
+    {% if tdee_diario %}
+    <div class="mb-4 p-4 bg-gray-50 rounded-xl shadow-inner">
+        <p class="text-gray-700 font-semibold">
+            TDEE diario: <span class="font-bold">{{ tdee_diario|floatformat:1 }} kcal</span>
+        </p>
+        <p class="text-gray-700 font-semibold">
+            TDEE semanal ({{ planes_diarios.count }} días): <span class="font-bold">{{ tdee_semanal|floatformat:1 }} kcal</span>
+        </p>
+        <p class="text-gray-700 font-semibold">
+            Estado calórico: 
+            <span class="{% if estado_calorias == 'Déficit calórico' or estado_calorias == 'Déficit moderado' %}text-red-600
+                        {% elif estado_calorias == 'Mantenimiento' %}text-green-600
+                        {% else %}text-orange-600{% endif %} font-bold">
+                {{ estado_calorias }}
+            </span>
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Gráfica semanal -->
+    <div class="mt-6 bg-white p-6 rounded-3xl shadow-lg">
+        <h2 class="text-2xl font-bold mb-4">Gráfica semanal</h2>
+        <canvas id="grafica-semana"></canvas>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// Configuración de la gráfica: calorías en eje independiente, macros en un solo eje
 const ctx = document.getElementById('grafica-semana').getContext('2d');
 const data = {
     labels: [{% for plan in planes_diarios %}'{{ plan.nombre }}',{% endfor %}],
     datasets: [
-        { label: 'Calorías', data: [{% for plan in planes_diarios %}{{ plan.calorias_totales }},{% endfor %}], backgroundColor: 'rgba(255, 99, 132, 0.5)' },
-        { label: 'Proteínas', data: [{% for plan in planes_diarios %}{{ plan.proteinas_totales }},{% endfor %}], backgroundColor: 'rgba(54, 162, 235, 0.5)' },
-        { label: 'Grasas', data: [{% for plan in planes_diarios %}{{ plan.grasas_totales }},{% endfor %}], backgroundColor: 'rgba(255, 206, 86, 0.5)' },
-        { label: 'Carbohidratos', data: [{% for plan in planes_diarios %}{{ plan.carbohidratos_totales }},{% endfor %}], backgroundColor: 'rgba(75, 192, 192, 0.5)' }
+        {
+            label: 'Calorías',
+            data: [{% for plan in planes_diarios %}{{ plan.calorias_totales }},{% endfor %}],
+            yAxisID: 'yCal',
+            backgroundColor: 'rgba(255, 99, 132, 0.5)'
+        },
+        {
+            label: 'Proteínas',
+            data: [{% for plan in planes_diarios %}{{ plan.proteinas_totales }},{% endfor %}],
+            yAxisID: 'yMacros',
+            backgroundColor: 'rgba(54, 162, 235, 0.5)'
+        },
+        {
+            label: 'Grasas',
+            data: [{% for plan in planes_diarios %}{{ plan.grasas_totales }},{% endfor %}],
+            yAxisID: 'yMacros',
+            backgroundColor: 'rgba(255, 206, 86, 0.5)'
+        },
+        {
+            label: 'Carbohidratos',
+            data: [{% for plan in planes_diarios %}{{ plan.carbohidratos_totales }},{% endfor %}],
+            yAxisID: 'yMacros',
+            backgroundColor: 'rgba(75, 192, 192, 0.5)'
+        }
     ]
 };
 
 new Chart(ctx, {
     type: 'bar',
     data: data,
-    options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+    options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { position: 'top' } },
+        scales: {
+            yCal: { type: 'linear', position: 'left', beginAtZero: true, title: { display: true, text: 'Calorías' } },
+            yMacros: { type: 'linear', position: 'right', beginAtZero: true, title: { display: true, text: 'Macros (g)' }, grid: { drawOnChartArea: false } }
+        }
+    }
 });
 
 // Borrado dinámico

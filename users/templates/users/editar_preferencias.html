@@ -1,49 +1,74 @@
 {% extends "base.html" %}
+{% load widget_tweaks %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-100 flex items-center justify-center py-10">
-    <!-- Contenedor principal -->
-    <div class="w-full max-w-3xl bg-white rounded-2xl shadow-xl p-10">
-        <h2 class="text-3xl font-bold text-gray-900 mb-8 text-center">Editar preferencias y alergias</h2>
+<div class="min-h-screen bg-gradient-to-br from-orange-50 to-pink-100 flex items-center justify-center py-10 px-4 sm:px-6 lg:px-8">
+  <div class="w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl relative overflow-hidden">
 
-        <form method="post" class="space-y-6">
-            {% csrf_token %}
+    <!-- Fondo difuminado decorativo -->
+    <div class="absolute top-0 left-0 w-full h-36 bg-gradient-to-r from-orange-400 via-pink-300 to-fuchsia-400 opacity-30 blur-xl pointer-events-none"></div>
+    
+    <div class="relative p-8 z-10">
 
-            <!-- Alergias -->
-            <div>
-                <label class="block text-lg font-semibold text-gray-700 mb-2">{{ form.alergias.label }}</label>
-                {{ form.alergias }}
-                <p class="text-gray-400 text-sm mt-1">Separadas por comas. Ej: gluten, frutos secos</p>
-            </div>
+      <!-- Cabecera con avatar y título -->
+      <div class="flex flex-col items-center mb-8">
+        {% if request.user.perfil.avatar %}
+          <img src="{{ request.user.perfil.avatar.url }}" alt="Avatar" class="w-20 h-20 rounded-full border-4 border-orange-300 shadow-lg mb-3 transition-transform duration-300 hover:scale-105">
+        {% else %}
+          <img src="/media/perfiles/default.jpeg" alt="Avatar" class="w-20 h-20 rounded-full border-4 border-orange-300 shadow-lg mb-3 transition-transform duration-300 hover:scale-105">
+        {% endif %}
+        <h2 class="text-2xl font-bold bg-gradient-to-r from-orange-600 via-fuchsia-500 to-pink-600 bg-clip-text text-transparent mb-4 text-center font-display">
+          Editar preferencias y alergias
+        </h2>
+        <div class="flex gap-3 mt-1">
+          <a href="#" class="flex items-center justify-center w-8 h-8 rounded-full bg-white/70 border border-gray-200 shadow hover:bg-orange-100 transition"><i class="fab fa-instagram text-orange-500 text-lg"></i></a>
+          <a href="#" class="flex items-center justify-center w-8 h-8 rounded-full bg-white/70 border border-gray-200 shadow hover:bg-pink-100 transition"><i class="fab fa-facebook text-fuchsia-500 text-lg"></i></a>
+          <a href="#" class="flex items-center justify-center w-8 h-8 rounded-full bg-white/70 border border-gray-200 shadow hover:bg-fuchsia-100 transition"><i class="fab fa-twitter text-pink-500 text-lg"></i></a>
+        </div>
+      </div>
 
-            <!-- Ingredientes a evitar -->
-            <div>
-                <label class="block text-lg font-semibold text-gray-700 mb-2">{{ form.ingredientes_a_evitar.label }}</label>
-                {{ form.ingredientes_a_evitar }}
-                <p class="text-gray-400 text-sm mt-1">Separados por comas. Ej: tomate, cebolla, ajo</p>
-            </div>
+      <!-- Formulario -->
+      <form method="post" class="grid grid-cols-1 gap-6">
+        {% csrf_token %}
 
-            <!-- Tags a evitar -->
-            <div>
-                <label class="block text-lg font-semibold text-gray-700 mb-2">{{ form.tags_a_evitar.label }}</label>
-                {{ form.tags_a_evitar }}
-                <p class="text-gray-400 text-sm mt-1">Separados por comas. Ej: vegano, picante</p>
-            </div>
+        <!-- Alergias -->
+        <div class="bg-gradient-to-tr from-orange-50 to-orange-100 rounded-3xl border border-orange-200 shadow-md p-6 hover:shadow-xl transition duration-300">
+          <label class="block text-base font-semibold text-orange-700 mb-2">
+            {{ form.alergias.label }}
+          </label>
+          {{ form.alergias|add_class:"w-full px-5 py-3 rounded-xl border border-gray-200 bg-white shadow-inner focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-1 text-base placeholder-gray-400 transition duration-300" }}
+          <p class="text-gray-500 text-sm mt-1">Separadas por comas. Ej: gluten, frutos secos</p>
+        </div>
 
-            <!-- Botón Guardar -->
-            <div class="text-center">
-                <button type="submit" class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 transition duration-300">
-                    Guardar preferencias
-                </button>
-            </div>
-        </form>
+        <!-- Ingredientes a evitar -->
+        <div class="bg-gradient-to-tr from-pink-50 to-pink-100 rounded-3xl border border-pink-200 shadow-md p-6 hover:shadow-xl transition duration-300">
+          <label class="block text-base font-semibold text-pink-700 mb-2">
+            {{ form.ingredientes_a_evitar.label }}
+          </label>
+          {{ form.ingredientes_a_evitar|add_class:"w-full px-5 py-3 rounded-xl border border-gray-200 bg-white shadow-inner focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-1 text-base placeholder-gray-400 transition duration-300" }}
+          <p class="text-gray-500 text-sm mt-1">Separados por comas. Ej: tomate, cebolla, ajo</p>
+        </div>
+
+        <!-- Tags a evitar -->
+        <div class="bg-gradient-to-tr from-fuchsia-50 to-fuchsia-100 rounded-3xl border border-fuchsia-200 shadow-md p-6 hover:shadow-xl transition duration-300">
+          <label class="block text-base font-semibold text-fuchsia-700 mb-2">
+            {{ form.tags_a_evitar.label }}
+          </label>
+          {{ form.tags_a_evitar|add_class:"w-full px-5 py-3 rounded-xl border border-gray-200 bg-white shadow-inner focus:outline-none focus:ring-2 focus:ring-fuchsia-400 focus:ring-offset-1 text-base placeholder-gray-400 transition duration-300" }}
+          <p class="text-gray-500 text-sm mt-1">Separados por comas. Ej: vegano, picante</p>
+        </div>
+
+        <!-- Botón guardar -->
+        <div class="text-center mt-6 relative z-20">
+ <button type="submit"
+        class="px-10 py-3 bg-orange-500 text-black font-extrabold rounded-3xl shadow-lg shadow-orange-300/60 hover:shadow-xl hover:shadow-orange-400/80 hover:scale-105 transition-transform duration-300 focus:outline-none focus:ring-4 focus:ring-orange-400 focus:ring-opacity-50 focus:ring-offset-2 ring-inset">
+  Guardar preferencias
+</button>
+
+        </div>
+
+      </form>
     </div>
+  </div>
 </div>
-
-<style>
-/* Aplica Tailwind a los campos del formulario para que se vean premium */
-input[type="text"], textarea {
-    @apply w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
-}
-</style>
 {% endblock %}

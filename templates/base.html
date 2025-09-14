@@ -22,7 +22,7 @@
 
     <!-- Header -->
    <header class="relative h-[360px] flex flex-col justify-between text-white">
-  <div class="absolute inset-0 bg-black/50"></div>
+   <div class="absolute inset-0 bg-black/50 pointer-events-none"></div>
 
   <!-- Navbar -->
   <div class="relative z-10 w-11/12 max-w-7xl mx-auto flex justify-between items-center py-4">
@@ -44,61 +44,62 @@
     <!-- Buscador + filtros + notificaciones + perfil -->
     <div class="flex items-center gap-4">
 
-      <!-- Buscador + dropdown de filtros -->
-      <div class="relative">
-        <div class="flex items-center gap-2">
-          <form method="get" action="{% url 'users:buscar_usuarios_y_recetas' %}" class="flex flex-1">
-            <input type="text" name="query" placeholder="Buscar..."
-                   value="{{ request.GET.query|default:'' }}"
-                   class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:ring-2 focus:ring-orange-400 focus:outline-none text-gray-800 transition duration-300">
-            <button type="submit"
-                    class="px-4 py-2 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-pink-500 hover:to-orange-500 text-white rounded-r-md font-semibold transition duration-500 shadow-lg">
-              🔍
-            </button>
-          </form>
+<!-- Buscador + filtros -->
+<!-- Buscador + filtros -->
+<div class="relative z-[9999]">
+  <form method="get" action="{% url 'users:buscar_usuarios_y_recetas' %}">
+    <div class="flex items-center gap-2">
+      <input type="text" name="query" placeholder="Buscar..."
+             value="{{ request.GET.query|default:'' }}"
+             class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:ring-2 focus:ring-orange-400 focus:outline-none text-gray-800 transition duration-300">
+      <button type="submit"
+              class="px-4 py-2 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-pink-500 hover:to-orange-500 text-white rounded-r-md font-semibold transition duration-500 shadow-lg">
+        🔍
+      </button>
+      <!-- Botón de filtros solo para mostrar/ocultar el dropdown -->
+      <button type="button" id="filtros-btn"
+              class="ml-2 px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-100 transition">
+        Filtros
+      </button>
+    </div>
 
-          <!-- Botón de filtros -->
-          <button type="button" id="filtros-btn"
-                  class="ml-2 px-3 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition">
-            Filtros
-          </button>
-        </div>
+    <!-- Dropdown de filtros -->
+    <div id="filtros-dropdown"
+         class="absolute right-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg p-4 hidden text-gray-800">
+      
+      <select name="dificultad" class="px-2 py-1 border rounded-md w-full text-gray-800 bg-white">
+        <option value="">Dificultad</option>
+        <option value="fácil" {% if request.GET.dificultad == 'fácil' %}selected{% endif %}>Fácil</option>
+        <option value="media" {% if request.GET.dificultad == 'media' %}selected{% endif %}>Media</option>
+        <option value="difícil" {% if request.GET.dificultad == 'difícil' %}selected{% endif %}>Difícil</option>
+      </select>
 
-        <!-- Dropdown de filtros -->
-        <div id="filtros-dropdown"
-             class="absolute left-0 top-full mt-1 w-80 bg-white border border-gray-200 rounded-md shadow-lg p-4 hidden z-50 text-gray-800">
-          <form method="get" action="{% url 'users:buscar_usuarios_y_recetas' %}" class="grid grid-cols-1 gap-2">
-            <select name="dificultad" class="px-2 py-1 border rounded-md w-full text-gray-800 bg-white">
-              <option value="">Dificultad</option>
-              <option value="fácil" {% if request.GET.dificultad == 'fácil' %}selected{% endif %}>Fácil</option>
-              <option value="media" {% if request.GET.dificultad == 'media' %}selected{% endif %}>Media</option>
-              <option value="difícil" {% if request.GET.dificultad == 'difícil' %}selected{% endif %}>Difícil</option>
-            </select>
-
-            <div class="flex gap-2">
-              <input type="number" name="min_calorias" placeholder="Min Cal" value="{{ request.GET.min_calorias|default:'' }}"
-                     class="px-2 py-1 border rounded-md flex-1 text-gray-800 bg-white">
-              <input type="number" name="max_calorias" placeholder="Max Cal" value="{{ request.GET.max_calorias|default:'' }}"
-                     class="px-2 py-1 border rounded-md flex-1 text-gray-800 bg-white">
-            </div>
-
-            <input type="text" name="tags" placeholder="Tags (separados por comas)" value="{{ request.GET.tags|default:'' }}"
-                   class="px-2 py-1 border rounded-md w-full text-gray-800 bg-white">
-
-            <div class="flex gap-2">
-              <input type="date" name="fecha_desde" value="{{ request.GET.fecha_desde|default:'' }}"
-                     class="px-2 py-1 border rounded-md flex-1 text-gray-800 bg-white">
-              <input type="date" name="fecha_hasta" value="{{ request.GET.fecha_hasta|default:'' }}"
-                     class="px-2 py-1 border rounded-md flex-1 text-gray-800 bg-white">
-            </div>
-
-            <button type="submit"
-                    class="mt-3 w-full bg-orange-500 text-white py-2 rounded-md hover:bg-orange-600 transition">
-              Aplicar filtros
-            </button>
-          </form>
-        </div>
+      <div class="flex gap-2 mt-2">
+        <input type="number" name="min_calorias" placeholder="Min Cal" value="{{ request.GET.min_calorias|default:'' }}"
+                class="px-2 py-1 border rounded-md flex-1 min-w-0 text-gray-800 bg-white">
+        <input type="number" name="max_calorias" placeholder="Max Cal" value="{{ request.GET.max_calorias|default:'' }}"
+                class="px-2 py-1 border rounded-md flex-1 min-w-0 text-gray-800 bg-white">
       </div>
+
+      <input type="text" name="tags" placeholder="Tags (separados por comas)" value="{{ request.GET.tags|default:'' }}"
+             class="px-2 py-1 border rounded-md w-full text-gray-800 bg-white mt-2">
+
+      <div class="flex gap-2 mt-2">
+        <input type="date" name="fecha_desde" value="{{ request.GET.fecha_desde|default:'' }}"
+               class="px-2 py-1 border rounded-md flex-1 min-w-0 text-gray-800 bg-white">
+        <input type="date" name="fecha_hasta" value="{{ request.GET.fecha_hasta|default:'' }}"
+               class="px-2 py-1 border rounded-md flex-1 min-w-0 text-gray-800 bg-white">
+      </div>
+
+      <!-- Botón limpiar filtros -->
+      <button type="button" id="limpiar-filtros"
+              class="mt-3 w-full bg-gray-200 text-gray-800 py-2 rounded-md hover:bg-gray-300 transition">
+        Limpiar filtros
+      </button>
+    </div>
+  </form>
+</div>
+
 
       {% if user.is_authenticated %}
         <!-- Dropdown Notificaciones -->
@@ -170,14 +171,15 @@
   </div>
 
   <!-- Tagline -->
-  <div class="relative z-10 text-center mt-12 max-w-7xl mx-auto px-4">
-    <h1 class="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-500 to-pink-500 drop-shadow-lg animate-pulse">
-      Comparte y descubre recetas increíbles
-    </h1>
-    <p class="mt-3 text-lg text-white drop-shadow-md">
-      Únete a la comunidad de FoodieNet y lleva tu pasión por la cocina al siguiente nivel.
-    </p>
-  </div>
+<div class="relative z-0 text-center mt-12 max-w-7xl mx-auto px-4">
+  <h1 class="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-500 to-pink-500 drop-shadow-lg animate-pulse">
+    Comparte y descubre recetas increíbles
+  </h1>
+  <p class="mt-3 text-lg text-white drop-shadow-md">
+    Únete a la comunidad de FoodieNet y lleva tu pasión por la cocina al siguiente nivel.
+  </p>
+</div>
+
 </header>
 
     <main class="flex-grow w-11/12 max-w-5xl mx-auto mt-8 bg-white shadow-lg rounded-xl p-6 transition-all duration-500 hover:shadow-2xl">
@@ -196,21 +198,38 @@
 </html>
 
 <script>
-  // Dropdown Filtros
-  const btnFiltros = document.getElementById('filtros-btn');
-  const dropdownFiltros = document.getElementById('filtros-dropdown');
+const btnFiltros = document.getElementById('filtros-btn');
+const dropdownFiltros = document.getElementById('filtros-dropdown');
+const btnLimpiar = document.getElementById('limpiar-filtros');
+const formFiltros = dropdownFiltros.closest('form');
 
-  btnFiltros.addEventListener('click', (e) => {
-    e.stopPropagation();
-    dropdownFiltros.classList.toggle('hidden');
-  });
+// Toggle del dropdown
+btnFiltros.addEventListener('click', (e) => {
+  e.stopPropagation();
+  dropdownFiltros.classList.toggle('hidden');
+});
 
-  // Cerrar dropdown si clic fuera
-  document.addEventListener('click', (e) => {
-    if (!btnFiltros.contains(e.target) && !dropdownFiltros.contains(e.target)) {
-      dropdownFiltros.classList.add('hidden');
+// Cerrar dropdown si clic fuera
+document.addEventListener('click', (e) => {
+  if (!btnFiltros.contains(e.target) && !dropdownFiltros.contains(e.target)) {
+    dropdownFiltros.classList.add('hidden');
+  }
+});
+
+// Limpiar filtros y hacer submit
+btnLimpiar.addEventListener('click', () => {
+  formFiltros.querySelectorAll('input, select').forEach(el => el.value = '');
+  formFiltros.submit();
+});
+
+// Enviar form al presionar Enter en cualquier input de filtro
+dropdownFiltros.querySelectorAll('input, select').forEach(el => {
+  el.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      formFiltros.submit();
     }
   });
+});
 
   // Dropdown Notificaciones
   const notiBtn = document.getElementById('noti-btn');

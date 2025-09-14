@@ -3,20 +3,31 @@
 {% block title %}Crear Plan Semanal{% endblock %}
 
 {% block content %}
-<div class="max-w-xl mx-auto mt-10 bg-white rounded-xl shadow-md p-6">
-  <h2 class="text-2xl font-bold text-gray-800 mb-6">Nuevo Plan Semanal</h2>
+<div class="max-w-xl mx-auto mt-16 bg-white rounded-3xl shadow-2xl p-8">
+  <h2 class="text-3xl font-extrabold text-gray-900 mb-8 text-center">Crear Nuevo Plan Semanal</h2>
 
-  <form method="post" class="space-y-4">
+  <form method="post" class="space-y-6">
     {% csrf_token %}
-    {{ form.as_p }}
 
-    <div class="flex justify-end gap-2">
+    {% for field in form %}
+      <div class="flex flex-col">
+        <label for="{{ field.id_for_label }}" class="mb-2 font-semibold text-gray-700">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}
+          <span class="text-red-500 text-sm mt-1">{{ field.errors|join:", " }}</span>
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    <div class="flex justify-end gap-4 mt-6">
       <a href="{% url 'lista_planes_semanales' %}" 
-         class="px-4 py-2 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 transition">
+         class="px-6 py-3 rounded-2xl bg-gray-200 text-gray-800 font-semibold hover:bg-gray-300 transition duration-300 shadow-md">
         Cancelar
       </a>
       <button type="submit"
-              class="px-4 py-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-lg shadow hover:opacity-90 transition">
+              class="px-6 py-3 rounded-2xl bg-gradient-to-r from-orange-500 to-pink-500
+                     text-white font-semibold shadow-lg hover:from-orange-600 hover:to-pink-600
+                     transform hover:scale-105 transition duration-300">
         Guardar
       </button>
     </div>

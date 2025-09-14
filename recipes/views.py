@@ -1009,6 +1009,7 @@ def ver_plan_semanal(request, pk):
     }
     return render(request, "recipes/plan_semanal_detalle.html", context)
 
+@login_required
 def dashboard_plan_semanal(request, plan_semanal_id):
     plan_semanal = get_object_or_404(PlanSemanal, id=plan_semanal_id, usuario=request.user)
     planes_diarios = PlanDiario.objects.filter(plan_semanal=plan_semanal, usuario=request.user).order_by('fecha')
@@ -1026,10 +1027,59 @@ def dashboard_plan_semanal(request, plan_semanal_id):
             )
             return redirect('dashboard_plan_semanal', plan_semanal_id=plan_semanal.id)
 
-    return render(request, 'recipes/dashboard_plan_semanal.html', {
+    # --- Calcular totales de la semana ---
+    total_calorias = sum(plan.calorias_totales for plan in planes_diarios)
+    total_proteinas = sum(plan.proteinas_totales for plan in planes_diarios)
+    total_grasas = sum(plan.grasas_totales for plan in planes_diarios)
+    total_carbohidratos = sum(plan.carbohidratos_totales for plan in planes_diarios)
+
+    # --- Calcular TDEE diario usando misma lógica que ver_plan_diario ---
+    perfil = getattr(request.user, "perfil", None)
+    tdee_diario = None
+    tdee_semanal = None
+    estado_calorias = "No disponible"
+
+    if perfil:
+        peso = perfil.peso or 70
+        altura = perfil.altura or 170
+        edad = perfil.edad or 25
+        sexo = perfil.sexo or "M"
+
+        if sexo == "M":
+            bmr = 10 * peso + 6.25 * altura - 5 * edad + 5
+        else:
+            bmr = 10 * peso + 6.25 * altura - 5 * edad - 161
+
+        factor_actividad = getattr(perfil, "factor_actividad", 1.5)
+        tdee_diario = round(bmr * factor_actividad, 1)
+        tdee_semanal = tdee_diario * planes_diarios.count()
+
+        diferencia = total_calorias - tdee_semanal
+
+        if diferencia < -500:
+            estado_calorias = "Déficit calórico"
+        elif -500 <= diferencia <= -200:
+            estado_calorias = "Déficit moderado"
+        elif -200 < diferencia < 200:
+            estado_calorias = "Mantenimiento"
+        elif 200 <= diferencia <= 500:
+            estado_calorias = "Superávit moderado"
+        else:
+            estado_calorias = "Superávit alto"
+
+    context = {
         'plan_semanal': plan_semanal,
         'planes_diarios': planes_diarios,
-    })
+        'total_calorias': total_calorias,
+        'total_proteinas': total_proteinas,
+        'total_grasas': total_grasas,
+        'total_carbohidratos': total_carbohidratos,
+        'tdee_diario': tdee_diario,
+        'tdee_semanal': tdee_semanal,
+        'estado_calorias': estado_calorias,
+    }
+
+    return render(request, 'recipes/dashboard_plan_semanal.html', context)
 
 
 
